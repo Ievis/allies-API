@@ -26,6 +26,7 @@ class CourseCollectionResource extends ResourceCollection
                 ->getRelation('users')
                 ->first()
                 ->only([
+                    'id',
                     'name',
                     'surname',
                     'image',
@@ -33,13 +34,18 @@ class CourseCollectionResource extends ResourceCollection
                 ]);
             $subject = $course
                 ->getRelation('subject')
-                ->only('name');
+                ->only(['id', 'name']);
             $category = $course
                 ->getRelation('category')
-                ->only('name');
+                ->only(['id', 'name']);
             $tags = $course
                 ->getRelation('tags')
-                ->pluck('name');
+                ->map(function ($tag) {
+                    return collect([
+                        'id' => $tag->id,
+                        'name' => $tag->name,
+                    ]);
+                });
 
             return [
                 'id' => $course->id,

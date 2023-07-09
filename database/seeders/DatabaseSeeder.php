@@ -28,7 +28,16 @@ class DatabaseSeeder extends Seeder
             ],
             [
                 'name' => 'Олимпиады',
-            ]
+            ],
+            [
+                'name' => 'ДВИ',
+            ],
+            [
+                'name' => '9 класс',
+            ],
+            [
+                'name' => '11 класс',
+            ],
         ];
         $roles = [
             [
@@ -71,7 +80,10 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Физика'
             ],
             [
-                'name' => 'Русский язык'
+                'name' => 'Биология'
+            ],
+            [
+                'name' => 'Информатика'
             ],
         ];
 

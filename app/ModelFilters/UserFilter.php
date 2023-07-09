@@ -48,7 +48,7 @@ class UserFilter extends ModelFilter
             ->reject(function ($user) {
                 return empty($user->toArray());
             })
-        ->collapse();
+            ->collapse();
 
         $user_ids = $users->isEmpty()
             ? []
@@ -83,16 +83,32 @@ class UserFilter extends ModelFilter
     public function is_teacher($is_teacher)
     {
         return $is_teacher
-            ? $this->whereIn('role_id', [User::TEACHER, User::MAIN_TEACHER])->orderBy('role_id', 'DESC')
-            : $this->whereIn('role_id', [User::STUDENT]);
+            ? $this
+                ->whereHas('courses', function ($query) {
+                    return $query->where('is_teacher', true);
+                })
+                ->orderBy('role_id', 'DESC')
+            : $this
+                ->whereIn('role_id', [User::STUDENT])
+                ->orderBy('role_id', 'DESC');
     }
 
     public function setup()
     {
-        $this->query = User::with('teacher_descriptions');
+        $this->query = User::with([
+            'teacher_descriptions',
+            'coursesTeacher',
+            'coursesTeacher.subject',
+            'coursesMainTeacher',
+            'coursesMainTeacher.subject',
+        ]);
         $this->user = auth()->user();
         if (UserService::isAdmin($this->user)) return $this->orderBy('role_id', 'DESC');
 
-        return $this->whereIn('role_id', [User::TEACHER, User::MAIN_TEACHER])->orderBy('role_id', 'DESC');
+        return $this
+            ->whereHas('courses', function ($query) {
+                return $query->where('is_teacher', true);
+            })
+            ->orderBy('role_id', 'DESC');
     }
 }
