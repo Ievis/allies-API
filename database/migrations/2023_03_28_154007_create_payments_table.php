@@ -18,7 +18,7 @@ return new class extends Migration {
             $table->foreignId('course_id')->constrained('courses');
             $table->string('payment_id')->nullable();
             $table->string('rebill_id')->nullable();
-            $table->foreignId('payment_plan_id')->on('payment_plans')->onDelete('cascade');
+            $table->foreignId('payment_plan_id')->constrained('payment_plans')->onDelete('cascade');
             $table->string('status')->default('NEW');
             $table->boolean('is_callback_handled')->default(false);
             $table->timestamps();

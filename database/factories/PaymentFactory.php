@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\Course;
+use App\Models\PaymentPlan;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,11 +20,11 @@ class PaymentFactory extends Factory
     {
         return [
             'user_id' => 1,
-            'course_id' => 1,
+            'course_id' => Course::inRandomOrder()->first()->id,
             'payment_id' => 1,
             'rebill_id' => null,
             'card_id' => 1,
-            'payment_plan_id' => 1,
+            'payment_plan_id' => PaymentPlan::inRandomOrder()->first()->id,
             'transaction_type' => 'NEW',
             'status' => 'NEW',
             'rebill_attempts' => 0,

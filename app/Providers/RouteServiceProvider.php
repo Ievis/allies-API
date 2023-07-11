@@ -3,11 +3,13 @@
 namespace App\Providers;
 
 use App\Models\Category;
+use App\Models\Consultation;
 use App\Models\Course;
 use App\Models\Lesson;
 use App\Models\Modification;
 use App\Models\PaymentPlan;
 use App\Models\Problem;
+use App\Models\Review;
 use App\Models\Section;
 use App\Models\Subject;
 use App\Models\Tag;
@@ -42,6 +44,8 @@ class RouteServiceProvider extends ServiceProvider
         'section' => Section::class,
         'payment_plan' => PaymentPlan::class,
         'teacher_description' => TeacherDescription::class,
+        'review' => Review::class,
+        'consultation' => Consultation::class,
     ];
 
     /**
