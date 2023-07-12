@@ -16,10 +16,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/reviews', 'ReviewController@index');
-Route::get('/reviews/{review}', 'ReviewController@show');
-
-Route::group(['middleware' => 'jwt.auth'], function () {
-    Route::post('/reviews', 'ReviewController@store')->can('create', Review::class);
-    Route::post('/reviews/{review}', 'ReviewController@update')->can('update', 'review');
-    Route::delete('/reviews/{review}', 'ReviewController@delete')->can('delete', 'review');
-});
+//Route::get('/reviews/{review}', 'ReviewController@show');
+//
+//Route::group(['middleware' => 'jwt.auth'], function () {
+//    Route::post('/reviews', 'ReviewController@store')->can('create', Review::class);
+//    Route::post('/reviews/{review}', 'ReviewController@update')->can('update', 'review');
+//    Route::delete('/reviews/{review}', 'ReviewController@delete')->can('delete', 'review');
+//});

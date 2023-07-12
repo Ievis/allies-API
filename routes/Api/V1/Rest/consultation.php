@@ -15,11 +15,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/consultations', 'ConsultationController@index');
-Route::get('/consultations/{consultation}', 'ConsultationController@show');
+//Route::get('/consultations', 'ConsultationController@index');
+//Route::get('/consultations/{consultation}', 'ConsultationController@show');
 Route::post('/consultations', 'ConsultationController@store');
 
-Route::group(['middleware' => 'jwt.auth'], function () {
-    Route::post('/consultations/{consultation}', 'ConsultationController@update')->can('update', 'consultation');
-    Route::delete('/consultations/{consultation}', 'ConsultationController@delete')->can('delete', 'consultation');
-});
+//Route::group(['middleware' => 'jwt.auth'], function () {
+//    Route::post('/consultations/{consultation}', 'ConsultationController@update')->can('update',// 'consultation');
+//    Route::delete('/consultations/{consultation}', 'ConsultationController@delete')->can('delete', 'consultation');
+//});
