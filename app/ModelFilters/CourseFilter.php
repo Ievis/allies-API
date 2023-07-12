@@ -56,11 +56,7 @@ class CourseFilter extends ModelFilter
 
     public function category($category)
     {
-        $category_id = Category::where('slug', $category)?->first('id')?->id;
-
-        return empty($category_id)
-            ? $this->where('category_id', $category)
-            : $this->where('category_id', $category_id);
+        return $this->where('category_id', $category);
     }
 
     public function subject($subject)

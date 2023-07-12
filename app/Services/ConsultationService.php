@@ -6,17 +6,17 @@ use App\Models\Consultation;
 
 class ConsultationService
 {
-    public function createConsultation(array $data): Consultation
+    public static function createConsultation(array $data): Consultation
+    {
+        return Consultation::create($data);
+    }
+
+    public static function updateConsultation(array $data, Consultation $consultation): Consultation
     {
 
     }
 
-    public function updateConsultation(array $data, Consultation $consultation): Consultation
-    {
-
-    }
-
-    public function deleteConsultation(Consultation $consultation): Consultation
+    public static function deleteConsultation(Consultation $consultation): Consultation
     {
 
     }

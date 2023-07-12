@@ -21,8 +21,8 @@ class CourseFactory extends Factory
     public function definition()
     {
         return [
-            'category_id' => Category::inRandomOrder()->first()->id,
-            'subject_id' => Subject::inRandomOrder()->first()->id,
+            'category_id' => '',
+            'subject_id' => '',
             'name' => fake()->text(100),
             'description' => fake()->text(),
             'is_visible' => true,

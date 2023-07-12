@@ -15,7 +15,7 @@ class TagSeeder extends Seeder
      */
     public function run(): void
     {
-        $tags = Tag::factory(72)->create();
+        $tags = Tag::factory(164)->create();
 
         foreach ($tags as $tag) {
             DB::table('taggables')
