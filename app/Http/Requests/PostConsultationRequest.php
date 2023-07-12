@@ -30,7 +30,7 @@ class PostConsultationRequest extends FormRequest
         return [
             'name' => 'required|string|max:128',
             'phone' => 'required|string|max:128',
-            'email' => 'email|string|max:128',
+            'email' => 'required|email|string|max:128',
         ];
     }
 
@@ -48,6 +48,7 @@ class PostConsultationRequest extends FormRequest
             'phone.required' => 'Введите номер телефона в формате строки с максимальным размером 128 символов',
             'phone.string' => 'Введите номер телефон в формате строки с максимальным размером 128 символов',
             'phone.max' => 'Введите номер телефон в формате строки с максимальным размером 128 символов',
+            'email.required' => 'Введите свой email',
             'email.string' => 'Введите свой email в формате строки',
             'email.email' => 'Введите свой email',
             'email.max' => 'Введите свой email в формате строки с максимальным размером 128 символов',

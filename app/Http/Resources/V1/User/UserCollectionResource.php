@@ -51,6 +51,8 @@ class UserCollectionResource extends ResourceCollection
                 ->collapse()
                 ->unique();
 
+            dd($subjects);
+
             $descriptions = $user
                 ->getRelation('teacher_descriptions')
                 ->map(function ($teacher_description) {
