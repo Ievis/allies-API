@@ -49,9 +49,8 @@ class UserCollectionResource extends ResourceCollection
                     return $courses === null;
                 })
                 ->collapse()
-                ->unique();
-
-            dd($subjects);
+                ->unique()
+                ->values();
 
             $descriptions = $user
                 ->getRelation('teacher_descriptions')
