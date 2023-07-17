@@ -14,7 +14,7 @@ class CourseController extends Controller
 {
     public function index(Request $request): CourseCollectionResource
     {
-        $courses = Course::filter($request->all())->simplePaginateFilter($request->per_page ?? 10);
+        $courses = Course::filter($request->all())->simplePaginateFilter($request->per_page ?? Course::count());
 
         return new CourseCollectionResource($courses);
     }
