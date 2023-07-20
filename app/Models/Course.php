@@ -46,6 +46,11 @@ class Course extends Model
         return $this->hasMany(Problem::class);
     }
 
+    public function usersMainTeacher()
+    {
+        return $this->belongsToMany(User::class)->where('is_main_teacher', true);
+    }
+
     public function students()
     {
         $ids = DB::table('course_user')

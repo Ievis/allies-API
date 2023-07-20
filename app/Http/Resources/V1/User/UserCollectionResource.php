@@ -33,24 +33,34 @@ class UserCollectionResource extends ResourceCollection
                 'main_teacher' => $courses_main_teacher
             ]);
 
-            $subjects = $courses_teacher
+            $subjects_categories = $courses_teacher
                 ->map(function ($courses, $teacher_status) {
                     if ($courses->isEmpty()) return null;
                     return $courses->map(function ($course) use ($teacher_status) {
-                        return collect([
-                            'id' => $course->subject_id,
-                            'name' => $course->subject->name,
-                            'role' => $teacher_status,
-                        ]);
-                    });
+                        $subject = $course->getRelation('subject');
+                        $category = $course->getRelation('category');
 
+                        return [
+                            'subject' => [
+                                'id' => $course->subject_id,
+                                'name' => $subject->name,
+                                'role' => $teacher_status,
+                            ],
+                            'category' => [
+                                'id' => $category->id,
+                                'name' => $category->name,
+                            ],
+                        ];
+                    });
                 })
                 ->reject(function ($courses) {
                     return $courses === null;
                 })
                 ->collapse()
-                ->unique()
                 ->values();
+
+            $subjects = $subjects_categories->pluck('subject')->unique();
+            $categories = $subjects_categories->pluck('category')->unique();
 
             $descriptions = $user
                 ->getRelation('teacher_descriptions')
@@ -68,6 +78,7 @@ class UserCollectionResource extends ResourceCollection
                 'email' => $user->email,
                 'image' => $user->image,
                 'subjects' => $subjects,
+                'categories' => $categories,
                 'descriptions' => $descriptions,
             ];
         })->toArray();

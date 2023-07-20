@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Category;
 use App\Models\Consultation;
 use App\Models\Course;
+use App\Models\Discussion;
 use App\Models\Lesson;
 use App\Models\Modification;
 use App\Models\PaymentPlan;
@@ -46,6 +47,28 @@ class RouteServiceProvider extends ServiceProvider
         'teacher_description' => TeacherDescription::class,
         'review' => Review::class,
         'consultation' => Consultation::class,
+        'discussion' => Discussion::class,
+    ];
+
+    private array $otherApiRouteFiles = [
+        'auth' => [
+            'filename' => 'auth.php',
+            'middleware' => ['api', 'api.version:v1'],
+            'namespace' => 'App\Http\Controllers\Api\V1',
+            'prefix' => 'api/v1/auth'
+        ],
+        'payment' => [
+            'filename' => 'payment.php',
+            'middleware' => ['api', 'api.version:v1'],
+            'namespace' => 'App\Http\Controllers\Api\V1',
+            'prefix' => 'api/v1/payment'
+        ],
+        'telegram' => [
+            'filename' => 'telegram.php',
+            'middleware' => ['api', 'api.version:v1'],
+            'namespace' => 'App\Http\Controllers\Api\V1',
+            'prefix' => 'api/v1/telegram'
+        ],
     ];
 
     /**
@@ -58,27 +81,19 @@ class RouteServiceProvider extends ServiceProvider
         $this->routes(function () {
             $this->mapApiRoutes();
         });
-
-
     }
 
     protected function mapApiRoutes(): void
     {
-        Route::group([
-            'middleware' => ['api', 'api.version:v1'],
-            'namespace' => $this->apiNamespace . '\V1',
-            'prefix' => 'api/v1/auth',
-        ], function () {
-            require base_path('routes/Api/V1/auth.php');
-        });
-
-        Route::group([
-            'middleware' => ['api', 'api.version:v1'],
-            'namespace' => $this->apiNamespace . '\V1',
-            'prefix' => 'api/v1',
-        ], function () {
-            require base_path('routes/Api/V1/payment.php');
-        });
+        foreach ($this->otherApiRouteFiles as $anotherApiRouteFile) {
+            Route::group([
+                'middleware' => $anotherApiRouteFile['middleware'],
+                'namespace' => $anotherApiRouteFile['namespace'],
+                'prefix' => $anotherApiRouteFile['prefix'],
+            ], function () use ($anotherApiRouteFile) {
+                require base_path('routes/Api/V1/' . $anotherApiRouteFile['filename']);
+            });
+        }
 
         foreach ($this->crudInstances as $crudInstanceRouteName => $crudInstancesModelClassName) {
             Route::group([

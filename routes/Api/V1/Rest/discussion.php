@@ -1,7 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\V1\PaymentCallbackController;
-use App\Http\Controllers\Api\V1\PurchaseActionController;
+use App\Models\Lesson;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -15,8 +14,5 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
-Route::post('/callback', PaymentCallbackController::class);
 
-Route::group(['middleware' => 'jwt.auth'], function () {
-    Route::post('/purchase', PurchaseActionController::class);
-});
+Route::get('/discussions', 'DiscussionController@index');

@@ -163,7 +163,7 @@ class TinkoffRequestFormerService
             ? [
                 'Amount' => $this->amount,
                 //'CustomerKey' => $this->customer_key,
-                'NotificationURL' => env('SERVER_HOST') . '/api/v1/payments/callback',
+                'NotificationURL' => env('SERVER_HOST') . '/api/v1/payment/callback',
                 'OrderId' => $this->order_id,
                 'Password' => $this->password,
                 //'Recurrent' => 'Y',
@@ -174,7 +174,7 @@ class TinkoffRequestFormerService
             : [
                 'Amount' => $this->amount,
                 'CustomerKey' => $this->customer_key,
-                'NotificationURL' => env('SERVER_HOST') . '/api/v1/payments/callback',
+                'NotificationURL' => env('SERVER_HOST') . '/api/v1/payment/callback',
                 'OrderId' => $this->order_id,
                 'Password' => $this->password,
                 'Recurrent' => 'Y',

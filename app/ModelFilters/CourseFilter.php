@@ -83,9 +83,7 @@ class CourseFilter extends ModelFilter
     {
         $route_name = request()->route()->getName();
         $this->query = $route_name === 'courses.index'
-            ? Course::whereHas('users', function ($query) {
-                return $query->where('is_main_teacher', true);
-            })
+            ? Course::whereHas('usersMainTeacher')
                 ->with([
                     'users',
                     'tags',

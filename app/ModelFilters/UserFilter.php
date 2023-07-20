@@ -34,14 +34,13 @@ class UserFilter extends ModelFilter
         $users = $subject
             ->courses()
             ->with(['users' => function ($query) {
-                if (request('is_teacher') !== null) {
-                    $role_ids = request('is_teacher') ? [User::TEACHER, User::MAIN_TEACHER] : [User::STUDENT];
-                    $role_ids = UserService::isAdmin($this->user)
-                        ? $role_ids
-                        : [User::TEACHER, User::MAIN_TEACHER];
+                $is_teacher = request('is_teacher') ?? true;
+                $role_ids = $is_teacher ? [User::TEACHER, User::MAIN_TEACHER] : [User::STUDENT];
+                $role_ids = UserService::isAdmin($this->user)
+                    ? $role_ids
+                    : [User::TEACHER, User::MAIN_TEACHER];
 
-                    $query->whereIn('role_id', $role_ids);
-                }
+                $query->whereIn('role_id', $role_ids);
             }])
             ->get()
             ->pluck('users')
@@ -84,9 +83,7 @@ class UserFilter extends ModelFilter
     {
         return $is_teacher
             ? $this
-                ->whereHas('courses', function ($query) {
-                    return $query->where('is_teacher', true);
-                })
+                ->whereHas('coursesTeacherOrMainTeacher')
                 ->orderBy('role_id', 'DESC')
             : $this
                 ->whereIn('role_id', [User::STUDENT])
@@ -97,18 +94,16 @@ class UserFilter extends ModelFilter
     {
         $this->query = User::with([
             'teacher_descriptions',
-            'coursesTeacher',
             'coursesTeacher.subject',
-            'coursesMainTeacher',
+            'coursesTeacher.category',
             'coursesMainTeacher.subject',
+            'coursesMainTeacher.category',
         ]);
         $this->user = auth()->user();
         if (UserService::isAdmin($this->user)) return $this->orderBy('role_id', 'DESC');
 
         return $this
-            ->whereHas('courses', function ($query) {
-                return $query->where('is_teacher', true);
-            })
+            ->whereHas('coursesTeacherOrMainTeacher')
             ->orderBy('role_id', 'DESC');
     }
 }
