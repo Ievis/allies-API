@@ -29,10 +29,10 @@ class CourseUserSeeder extends Seeder
                     'course_id' => $course->id,
                     'user_id' => $user->id,
                     'payment_id' => 1,
-                    'is_teacher' => $user->role_id === 2,
+                    'is_teacher' => $user->role_id === 2 or $user->role_id === 3,
                     'is_annual' => true,
                     'expires_at' => Carbon::now(),
-                    'is_main_teacher' => true,
+                    'is_main_teacher' => $user->role_id === 3,
                 ]);
         }
     }
