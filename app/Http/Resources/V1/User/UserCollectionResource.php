@@ -59,8 +59,8 @@ class UserCollectionResource extends ResourceCollection
                 ->collapse()
                 ->values();
 
-            $subjects = $subjects_categories->pluck('subject')->unique();
-            $categories = $subjects_categories->pluck('category')->unique();
+            $subjects = $subjects_categories->pluck('subject')->unique()->values();
+            $categories = $subjects_categories->pluck('category')->unique()->values();
 
             $descriptions = $user
                 ->getRelation('teacher_descriptions')
