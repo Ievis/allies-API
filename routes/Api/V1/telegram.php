@@ -15,3 +15,8 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::post('/callback', 'TelegramController@index');
+
+
+Route::group(['middleware' => 'jwt.auth'], function () {
+    Route::post('/charge', 'TelegramController@charge');
+});

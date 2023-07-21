@@ -36,6 +36,11 @@ class User extends Authenticatable implements JWTSubject
     public const TEACHER = 2;
     public const STUDENT = 1;
 
+    public function telegramUser()
+    {
+        return $this->hasOne(TelegramUser::class);
+    }
+
     public static function getRoleById($role_id)
     {
         switch ($role_id) {

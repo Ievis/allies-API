@@ -13,6 +13,11 @@ use Illuminate\Support\Facades\Hash;
 
 class UserService
 {
+    public static function isTeacher(User $user): bool
+    {
+        return $user->role()->first()->id !== User::STUDENT;
+    }
+
     public static function createUser(array $data): User
     {
         $image = FileService::save($data['image'] ?? null);
