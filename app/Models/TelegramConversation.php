@@ -21,8 +21,23 @@ class TelegramConversation extends Model
         return $this->belongsTo(User::class, 'curator_id');
     }
 
+    public function studentTelegram()
+    {
+        return $this->belongsTo(TelegramUser::class, 'student_id', 'user_id');
+    }
+
+    public function curatorTelegram()
+    {
+        return $this->belongsTo(TelegramUser::class, 'curator_id', 'user_id');
+    }
+
     public function messages()
     {
         return $this->hasMany(TelegramConversationMessage::class);
+    }
+
+    public function lesson()
+    {
+        return $this->belongsTo(Lesson::class);
     }
 }

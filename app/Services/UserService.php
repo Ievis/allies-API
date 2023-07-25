@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Hash;
 
 class UserService
 {
-    public static function isTeacher(User $user): bool
+    public static function isNotStudent(User $user): bool
     {
         return $user->role()->first()->id !== User::STUDENT;
     }

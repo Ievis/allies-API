@@ -13,7 +13,7 @@ return new class extends Migration {
         Schema::create('telegram_users', function (Blueprint $table) {
             $table->id();
             $table->string('username');
-            $table->unsignedInteger('chat_id')->nullable();
+            $table->unsignedBigInteger('chat_id')->nullable();
             $table->foreignId('user_id')->constrained('users');
             $table->timestamps();
         });

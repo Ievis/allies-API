@@ -41,6 +41,17 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasOne(TelegramUser::class);
     }
 
+    public function telegramConversations()
+    {
+        return $this->hasMany(TelegramConversation::class, 'student_id');
+    }
+
+    public function activeConversation()
+    {
+        return $this->hasOne(TelegramConversation::class, 'student_id')
+            ->where('is_resolved', false);
+    }
+
     public static function getRoleById($role_id)
     {
         switch ($role_id) {
