@@ -48,8 +48,13 @@ class TelegramConversationSeeder extends Seeder
                 'is_main_teacher' => false
             ]);
 
+        $number_in_course = Lesson::where('is_modification', false)->count();
+        $number_in_course = $number_in_course === 0
+            ? 1
+            : $number_in_course;
+
         Lesson::create([
-            'number_in_course' => Lesson::where('is_modification', false)->count(),
+            'number_in_course' => $number_in_course,
             'url' => 'url',
             'zoom_url' => null,
             'will_at' => null,
