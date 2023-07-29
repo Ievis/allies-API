@@ -1,23 +1,18 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers\Api\V1\Telegram\Conversation;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PostTelegramChargeRequest;
 use App\Models\Lesson;
 use App\Models\TelegramConversation;
 use App\Models\TelegramUser;
-use App\Models\User;
-use App\Policies\LessonPolicy;
-use App\Services\LessonAccessService;
 use App\Services\TelegramRequestFormerService;
 use App\Services\UserService;
-use Database\Seeders\CourseUserSeeder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use stdClass;
 
-class TelegramController extends Controller
+class ConversationController extends Controller
 {
     private TelegramRequestFormerService $telegram_request_service;
     private array $commands = [

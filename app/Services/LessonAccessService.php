@@ -27,7 +27,7 @@ class LessonAccessService
             ? $now->toDate()
             : $course_user->expires_at;
 
-        return $now->lt($expires_at);
+        return $now->lt($expires_at) or $course_user->is_annual;
     }
 
     public static function authTeacher(User $user, $course_id): bool
