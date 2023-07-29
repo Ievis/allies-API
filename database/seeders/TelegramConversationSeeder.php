@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Lesson;
+use App\Models\Section;
 use App\Models\TelegramUser;
 use App\Models\User;
 use Carbon\Carbon;
@@ -53,6 +54,10 @@ class TelegramConversationSeeder extends Seeder
             ? 1
             : $number_in_course;
 
+        $section = Section::create([
+            'course_id' => $course_id,
+            'name' => 'section'
+        ]);
         Lesson::create([
             'number_in_course' => $number_in_course,
             'url' => 'url',
@@ -64,7 +69,7 @@ class TelegramConversationSeeder extends Seeder
             'course_id' => $course_id,
             'type_id' => 1,
             'status_id' => 2,
-            'section_id' => 1
+            'section_id' => $section->id
         ]);
     }
 }
