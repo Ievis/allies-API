@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Telegram\AbstractTelegramController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -14,8 +15,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::post('/conversations/callback', 'ConversationController@index');
-
+Route::post('/conversations/callback', 'TelegramController@index');
 
 Route::group(['middleware' => 'jwt.auth'], function () {
     Route::post('/conversations/charge', 'ConversationController@charge');

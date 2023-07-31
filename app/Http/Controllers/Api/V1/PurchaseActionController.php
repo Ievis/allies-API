@@ -8,7 +8,7 @@ use App\Http\Requests\PostPurchaseRequest;
 use App\Models\Course;
 use App\Models\Payment;
 use App\Models\PaymentPlan;
-use App\Services\TinkoffRequestFormerService;
+use App\Services\TinkoffRequestService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -22,7 +22,7 @@ class PurchaseActionController extends Controller
 
     private function getRequestFormerService()
     {
-        $this->request_former_service = new TinkoffRequestFormerService(auth()->user()->id);
+        $this->request_former_service = new TinkoffRequestService(auth()->user()->id);
     }
 
     public function __invoke(PostPurchaseRequest $request)

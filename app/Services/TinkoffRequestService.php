@@ -4,7 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 
-class TinkoffRequestFormerService
+class TinkoffRequestService
 {
     private $terminal_key;
     private $password;

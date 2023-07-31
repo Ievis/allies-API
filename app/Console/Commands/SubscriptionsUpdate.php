@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Payment;
-use App\Services\TinkoffRequestFormerService;
+use App\Services\TinkoffRequestService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +37,7 @@ class SubscriptionsUpdate extends Command
 
         if (!empty($not_handled_payments)) {
             foreach ($not_handled_payments as $payment) {
-                $request_former = new TinkoffRequestFormerService($payment->user_id);
+                $request_former = new TinkoffRequestService($payment->user_id);
 
                 $response = $request_former
                     ->setOrderId($payment->id)
@@ -114,7 +114,7 @@ class SubscriptionsUpdate extends Command
                 continue;
             }
 
-            $request_former = new TinkoffRequestFormerService($payment->user_id);
+            $request_former = new TinkoffRequestService($payment->user_id);
             $response = $request_former
                 ->setPaymentId($payment->payment_id)
                 ->setRebillId($payment->rebill_id)

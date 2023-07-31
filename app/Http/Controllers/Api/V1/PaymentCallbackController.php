@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use App\Models\PaymentPlan;
-use App\Services\TinkoffRequestFormerService;
+use App\Services\TinkoffRequestService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -53,7 +53,7 @@ class PaymentCallbackController extends Controller
 
     private function set_request_former_service()
     {
-        $this->request_former_service = new TinkoffRequestFormerService($this->payment->user_id);
+        $this->request_former_service = new TinkoffRequestService($this->payment->user_id);
     }
 
     private function update_payment_status()

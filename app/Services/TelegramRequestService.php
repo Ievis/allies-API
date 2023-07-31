@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Http;
 use JetBrains\PhpStorm\NoReturn;
 use stdClass;
 
-class TelegramRequestFormerService
+class TelegramRequestService
 {
     private string $api_token;
     private string $base_url;
@@ -20,21 +20,21 @@ class TelegramRequestFormerService
         $this->setParams([]);
     }
 
-    public function setMethodName(string $method_name): TelegramRequestFormerService
+    public function setMethodName(string $method_name): TelegramRequestService
     {
         $this->full_url = $this->base_url . '/' . $method_name;
 
         return $this;
     }
 
-    public function setParams(array $parameters): TelegramRequestFormerService
+    public function setParams(array $parameters): TelegramRequestService
     {
         $this->parameters = $parameters;
 
         return $this;
     }
 
-    public function make(string $http_verb): stdClass
+    public function make(string $http_verb = 'GET'): stdClass
     {
         $response = Http::{$http_verb}($this->full_url, $this->parameters);
 

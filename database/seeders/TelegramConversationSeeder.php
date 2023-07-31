@@ -22,7 +22,7 @@ class TelegramConversationSeeder extends Seeder
         $course_id = 1;
 
         $user = User::where('email', 'student@mail.ru')->first() ?? User::create([
-            'name' => fake()->word(),
+            'name' => 'admin',
             'surname' => fake()->word(),
             'description' => fake()->paragraph(2),
             'role_id' => 1,
