@@ -63,17 +63,17 @@ class RouteServiceProvider extends ServiceProvider
             'namespace' => 'App\Http\Controllers\Api\V1',
             'prefix' => 'api/v1/payment'
         ],
-        'telegram-conversation' => [
-            'filename' => 'telegram/conversation.php',
+        'Telegram-conversation' => [
+            'filename' => 'Telegram/conversation.php',
             'middleware' => ['api', 'api.version:v1'],
             'namespace' => 'App\Http\Controllers\Api\V1\Telegram\Conversation',
-            'prefix' => 'api/v1/telegram'
+            'prefix' => 'api/v1/Telegram'
         ],
-        'telegram-dating' => [
-            'filename' => 'telegram/dating.php',
+        'Telegram-dating' => [
+            'filename' => 'Telegram/dating.php',
             'middleware' => ['api', 'api.version:v1'],
             'namespace' => 'App\Http\Controllers\Api\V1\Telegram\Dating',
-            'prefix' => 'api/v1/telegram'
+            'prefix' => 'api/v1/Telegram'
         ],
     ];
 

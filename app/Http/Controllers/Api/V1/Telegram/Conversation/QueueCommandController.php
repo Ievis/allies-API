@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1\Telegram\Conversation;
 
 use App\Models\TelegramConversation;
-use App\Models\TelegramUser;
 use App\Services\UserService;
 
 class QueueCommandController extends CommandController

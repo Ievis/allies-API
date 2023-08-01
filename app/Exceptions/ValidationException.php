@@ -11,7 +11,7 @@ class ValidationException extends HttpResponseException
     {
         $response = response()->json([
             'success' => false,
-            'message' => 'Validation errors',
+            'message' => 'Ошибки валидации',
             'data' => array_map(function ($item) {
                 return $item[0];
             }, $validator->errors()->toArray())

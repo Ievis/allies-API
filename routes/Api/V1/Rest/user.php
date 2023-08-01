@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/users', 'UserController@index');
 
 Route::group(['middleware' => 'jwt.auth'], function () {
+    Route::post('/users/telegram', 'TelegramUserController@store');
     Route::get('/users/{user}', 'UserController@show')->can('view', 'user');
     Route::post('/users', 'UserController@store')->name('users.create')->can('create', User::class);
     Route::post('/users/{user}', 'UserController@update')->can('update', 'user');

@@ -31,17 +31,11 @@ class PostCourseRequest extends FormRequest
         $preview_requirement = $route_name === 'courses.create'
             ? 'required'
             : 'nullable';
-        $category_id = request()->post('category_id');
-        $subject_id = request()->post('subject_id');
-        $category = Category::find($category_id);
-        $subject = Subject::find($subject_id);
-        if (empty($category)) throw new RespondWithMessageException('Укажите категорию');
-        if (empty($subject)) throw new RespondWithMessageException('Укажите предмет');
 
         return [
             'name' => 'required|string|max:255',
-            'category_id' => 'required|integer',
-            'subject_id' => 'required|integer',
+            'category_id' => 'required|integer|exists:categories,id',
+            'subject_id' => 'required|integer|exists:subjects,id',
             'preview' => $preview_requirement . '|image|max:15360',
             'is_visible' => 'nullable|boolean',
             'description' => 'required|string|max:2048',
@@ -60,6 +54,10 @@ class PostCourseRequest extends FormRequest
             'name.max' => 'Максимальная длина названия курса - 255 символов',
             'category_id.required' => 'Укажите категорию',
             'category_id.integer' => 'id категории - целое число',
+            'category_id.exists' => 'Укажите существующую категорию',
+            'subject_id.required' => 'Укажите предмет',
+            'subject_id.integer' => 'id предмета - целое число',
+            'subject_id.exists' => 'Укажите существующий предмет',
             'preview.required' => 'Загрузите фотографию курса',
             'preview.image' => 'Загрузите фотографию курса',
             'price.required' => 'Введите цену курса',

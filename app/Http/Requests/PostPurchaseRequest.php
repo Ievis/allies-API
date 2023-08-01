@@ -5,8 +5,10 @@ namespace App\Http\Requests;
 use App\Exceptions\ValidationException;
 use App\Models\Course;
 use App\Models\PaymentPlan;
+use App\Rules\CourseHasPaymentPlan;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Validation\Factory;
 
 class PostPurchaseRequest extends FormRequest
 {
@@ -25,18 +27,14 @@ class PostPurchaseRequest extends FormRequest
      */
     public function rules(): array
     {
-        $course_id = request()->post('course_id');
-        $payment_plan_id = request()->post('payment_plan_id');
-        $course = Course::findOrFail($course_id);
-        $payment_plan = PaymentPlan::findOrFail($payment_plan_id);
-        $payment_plans = $course->payment_plans()->get();
-        if (!$payment_plans->contains($payment_plan)) {
-            abort(404);
-        }
-
         return [
-            'course_id' => 'required|integer',
-            'payment_plan_id' => 'required|integer',
+            'course_id' => 'required|integer|exists:courses,id',
+            'payment_plan_id' => [
+                'required',
+                'integer',
+                'exists:payment_plans,id',
+                new CourseHasPaymentPlan()
+            ],
         ];
     }
 
@@ -48,10 +46,12 @@ class PostPurchaseRequest extends FormRequest
     public function messages()
     {
         return [
-            'course_id.required' => 'Укажите id курса',
+            'course_id.required' => 'Укажите курс',
             'course_id.integer' => 'Укажите id курса в целочисленном формате',
-            'payment_plan_id.required' => 'Укажите id курса',
-            'payment_plan_id.integer' => 'Укажите id курса в целочисленном формате',
+            'course_id.exists' => 'Укажите существующий курс',
+            'payment_plan_id.required' => 'Укажите ценовую политику',
+            'payment_plan_id.integer' => 'Укажите id ценовой политики в целочисленном формате',
+            'payment_plan_id.exists' => 'Укажите существующую ценовую политику',
         ];
     }
 }

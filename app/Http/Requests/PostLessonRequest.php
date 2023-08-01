@@ -32,36 +32,26 @@ class PostLessonRequest extends FormRequest
     public function rules(): array
     {
         $route_name = request()->route()->getName();
-        $course_id = request()->post('course_id');
-        $type_id = request()->post('type_id');
-        $status_id = request()->post('status_id');
-        $section_id = request()->post('section_id');
-        $lesson_type = LessonType::find($type_id);
-        $lesson_status = LessonStatus::find($status_id);
-        $section = Section::find($section_id);
-        $course = Course::find($course_id);
-        if (empty($course)) throw new RespondWithMessageException('Укажите курс');
-        if (empty($lesson_type)) throw new RespondWithMessageException('Укажите тип урока');
-        if (empty($lesson_status)) throw new RespondWithMessageException('Укажите статус урока');
-        if (empty($section)) throw new RespondWithMessageException('Укажите секцию урока');
+        $course_id = request()->input('course_id');
 
-        $lessons_count = Course::findOrFail($course_id)
+        $lessons_count = Course::find($course_id)
             ?->lessons()
-            ?->where('is_modification', false)->count();
+            ?->where('is_modification', false)
+            ?->count();
 
         $max_number_in_course = $route_name === 'lessons.create' ? $lessons_count + 1 : $lessons_count;
 
         return [
-            'type_id' => 'required|integer',
-            'status_id' => 'required|integer',
+            'type_id' => 'required|integer|exists:lesson_types,id',
+            'status_id' => 'required|integer|exists:lesson_statuses,id',
             'url' => 'required_if:status_id,==,2|string|max:255',
             'zoom_url' => 'required_if:status_id,==,1|string|max:255',
             'will_at' => 'required_if:status_id,==,1|date|after:' . Carbon::now(),
             'title' => 'required|string|max:255',
-            'course_id' => 'required|integer',
+            'course_id' => 'required|integer|exists:courses,id',
             'number_in_course' => 'integer|nullable|between:1,' . $max_number_in_course,
             'description' => 'string|max:1024',
-            'section_id' => 'required|integer',
+            'section_id' => 'required|integer|exists:sections,id',
             // 'preview' => 'required|image|size:15360||dimensions:min_width=100,min_height=100,max_width=1000,max_height=1000',
         ];
     }
@@ -76,8 +66,10 @@ class PostLessonRequest extends FormRequest
         return [
             'type_id.required' => 'Укажите тип урока',
             'type_id.integer' => 'Тип урока - целочисленный id',
+            'type_id.exists' => 'Тип существующий тип урока',
             'status_id.required' => 'Укажите статус урока',
             'status_id.integer' => 'Статус урока - целочисленный id',
+            'status_id.exists' => 'Укажите существующий статус урока',
             'url.required_if' => 'Необходимо вставить ссылку на урок в видеохостинге',
             'url.max' => 'Максимальная длина ссылки - 255 символов',
             'zoom_url.required_if' => 'Необходимо вставить ссылку на урок в Zoom',
@@ -89,11 +81,13 @@ class PostLessonRequest extends FormRequest
             'title.max' => 'Максимальная длина названия урока - 255 символов',
             'course_id.required' => 'Укажите курс, для которого создаёте или обновляете урок',
             'course_id.integer' => 'Укажите курс, для которого создаёте или обновляете, - целочисленный id',
+            'course_id.exists' => 'Укажите существующий курс, для которого создаёте или обновляете урок',
             'number_in_course.between' => 'Номер урока в курсе должен быть от :min до :max',
             'number_in_course.integer' => 'Укажите номер урока в курсе',
             'description.max' => 'Максимальное количество символов в описании - 1024',
-            'section_id.required' => 'Введите id секции',
+            'section_id.required' => 'Укажите секцию',
             'section_id.integer' => 'Введите id секции в целочисленном формате',
+            'section_id.exists' => 'Укажите существующую секцию',
         ];
     }
 }

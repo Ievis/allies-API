@@ -27,9 +27,12 @@ class PostProblemRequest extends FormRequest
     {
         $route_name = request()->route()->getName();
         $lesson_id = request()->post('lesson_id');
-        $problems_count = Lesson::findOrFail($lesson_id)
+
+        $problems_count = Lesson::find($lesson_id)
             ?->problems()
-            ?->where('is_modification', false)->count();
+            ?->where('is_modification', false)
+            ?->count();
+
         $max_number_in_lesson = $route_name === 'problems.create' ? $problems_count + 1 : $problems_count;
 
         return [
@@ -37,7 +40,7 @@ class PostProblemRequest extends FormRequest
             'condition' => 'required|string|max:8192',
             'solution' => 'required|string|max:8192',
             'answer' => 'required|string|max:255',
-            'lesson_id' => 'required|integer',
+            'lesson_id' => 'required|integer|exists:lessons,id',
             'number_in_lesson' => 'integer|nullable|between:1,' . $max_number_in_lesson,
         ];
     }
@@ -60,6 +63,7 @@ class PostProblemRequest extends FormRequest
             'answer.max' => 'Максимальная длина ответа - :max символов',
             'lesson_id.required' => 'Укажите id урока, для которого собираетесь добавить задачу - от :min до :max',
             'lesson_id.integer' => 'id урока, для которого собираетесь добавить задачу - целое число от :min до :max',
+            'lesson_id.exists' => 'Укажите существующий урок',
             'number_in_lesson.integer' => 'id урока, для которого собираетесь добавить задачу - целое число от :min до :max',
             'number_in_lesson.between' => 'id урока, для которого собираетесь добавить задачу - целое число от :min до :max',
         ];

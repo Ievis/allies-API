@@ -3,19 +3,13 @@
 namespace App\Http\Controllers\Api\V1\Telegram\Conversation;
 
 use App\Models\TelegramConversation;
-use Illuminate\Support\Facades\Log;
 
 class ChargeCallbackController extends CommandController
 {
     public function __invoke()
     {
         $callback_query = $this->data->getCallbackQuery();
-
-        Log::info(print_r($this->callback_query_args, true));
-
-
         $message_id = $this->callback_query_args['message_id'];
-
 
         $this->deleteMessage($message_id);
         $this->deleteMessage($callback_query->message->message_id);

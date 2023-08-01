@@ -24,14 +24,11 @@ class PostPaymentPlanRequest extends FormRequest
      */
     public function rules(): array
     {
-        $course_id = request()->post('course_id');
-        Course::findOrFail($course_id);
-
         return [
             'amount' => 'required|integer|digits_between:3,5',
             'months' => 'required_without:is_annual|integer|digits_between:1,2',
             'is_annual' => 'required_without:months|boolean',
-            'course_id' => 'required|integer',
+            'course_id' => 'required|integer|exists:courses,id',
         ];
     }
 
@@ -50,7 +47,9 @@ class PostPaymentPlanRequest extends FormRequest
             'months.integer' => 'Введите количество месяцев в формате целого числа',
             'months.digits_between' => 'Введите количество месяцев в формате целого числа от 1 до 99',
             'is_annual.required_without' => 'Введите количество месяцев в формате целого числа от 1 до 99',
-            'is_annual.boolean' => 'Введите количество месяцев в булевом формате',
+            'course_id.required' => 'Укажите курс',
+            'course_id.integer' => 'Укажите id курса',
+            'course_id.exists' => 'Укажите существующий курс',
         ];
     }
 }

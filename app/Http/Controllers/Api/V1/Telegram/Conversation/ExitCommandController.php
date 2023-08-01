@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1\Telegram\Conversation;
 
-use App\Services\UserService;
-
 class ExitCommandController extends CommandController
 {
     public function __invoke()
