@@ -22,11 +22,12 @@ class RegisterService extends CommandController
                 $username = $this->data->getUsername();
                 $text = $this->data->getMessage()->text;
 
-                $this->user_data[$field_name]['pending'] = false;
+                $this->user_data[$field_name]['is_pending'] = false;
                 $this->user_data[$field_name]['is_completed'] = true;
                 $this->user_data[$field_name]['value'] = $text;
 
                 Cache::set($username, $this->user_data);
+                continue;
             }
 
             $this->{$field_data['method']}();
