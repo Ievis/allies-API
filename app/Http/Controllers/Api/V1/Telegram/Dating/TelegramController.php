@@ -10,6 +10,7 @@ class TelegramController extends AbstractTelegramController
     {
         return [
             '/start' => StartCommandController::class,
+            '/error' => ErrorCommandController::class,
         ];
     }
 

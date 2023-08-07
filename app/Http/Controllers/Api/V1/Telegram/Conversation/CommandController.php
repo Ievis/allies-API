@@ -60,32 +60,4 @@ class CommandController extends TelegramController
 
         return $telegram_user->user()->first();
     }
-
-    protected function respondWithMessage(string $message, ?int $chat_id = null)
-    {
-        $chat_id = $chat_id ?? $this->data->getChatId();
-
-        $this->telegram_request_service
-            ->setMethodName('sendMessage')
-            ->setParams([
-                'chat_id' => $chat_id,
-                'text' => $message,
-                'parse_mode' => 'html',
-            ])
-            ->make();
-    }
-
-    protected function deleteMessage(?int $message_id = null, ?int $chat_id = null)
-    {
-        $chat_id = $chat_id ?? $this->data->getChatId();
-
-        $this->telegram_request_service
-            ->setMethodName('deleteMessage')
-            ->setParams([
-                'chat_id' => $chat_id,
-                'message_id' => $message_id,
-                'parse_mode' => 'html',
-            ])
-            ->make();
-    }
 }

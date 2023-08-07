@@ -14,4 +14,4 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::post('/dating/callback', 'DatingController@index');
+Route::post('/dating/callback', 'TelegramController@index');
