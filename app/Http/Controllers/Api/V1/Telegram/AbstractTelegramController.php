@@ -18,9 +18,13 @@ abstract class AbstractTelegramController
     protected TelegramUserData $data;
     private stdClass $update_data;
 
-    abstract public function setCommands();
+    protected string $token;
 
-    abstract public function setCallbackQueries();
+    abstract public function commands();
+
+    abstract public function callbackQueries();
+
+    abstract public function apiToken();
 
     public function setTelegramUserData(?TelegramUserData $data = null)
     {
@@ -39,10 +43,11 @@ abstract class AbstractTelegramController
 
     public function __construct()
     {
-        $this->setCommands();
-        $this->setCallbackQueries();
+        $this->commands = $this->commands();
+        $this->callback_queries = $this->callbackQueries();
+        $this->token = $this->apiToken();
 
-        $this->telegram_request_service = new TelegramRequestService();
+        $this->telegram_request_service = new TelegramRequestService($this->token);
         $this->query_parser = new QueryParser($this->callback_queries);
     }
 

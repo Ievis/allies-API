@@ -46,8 +46,6 @@ class QueryParser
 
         }
 
-        Log::info(print_r($args, true));
-
         return $args;
     }
 

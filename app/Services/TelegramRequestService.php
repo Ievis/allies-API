@@ -17,7 +17,7 @@ class TelegramRequestService
     {
         $this->setApiToken($api_token);
         $this->formBaseUrl();
-        $this->setParams([]);
+        $this->setParams();
     }
 
     public function setMethodName(string $method_name): TelegramRequestService
@@ -27,7 +27,7 @@ class TelegramRequestService
         return $this;
     }
 
-    public function setParams(array $parameters): TelegramRequestService
+    public function setParams(array $parameters = []): TelegramRequestService
     {
         $this->parameters = $parameters;
 

@@ -13,6 +13,10 @@ return new class extends Migration
     {
         Schema::create('telegram_dating_users', function (Blueprint $table) {
             $table->id();
+            $table->string('username');
+            $table->string('name');
+            $table->string('subject');
+            $table->string('category');
             $table->timestamps();
         });
     }
