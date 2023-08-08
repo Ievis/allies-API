@@ -125,7 +125,7 @@ abstract class AbstractTelegramController
     {
         $chat_id = $chat_id ?? $this->data->getChatId();
 
-        $this->telegram_request_service
+        return $this->telegram_request_service
             ->setMethodName('sendMessage')
             ->setParams([
                 'chat_id' => $chat_id,

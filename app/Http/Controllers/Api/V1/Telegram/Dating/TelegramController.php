@@ -17,6 +17,9 @@ class TelegramController extends AbstractTelegramController
     public function callbackQueries()
     {
         return [
+            'reset-{attribute}' => ResetCallbackController::class,
+            'confirm-{decision}' => ConfirmCallbackController::class,
+            'register-{attribute}-{value}' => RegisterCallbackController::class,
             'restart-{decision}-{message_id}' => RestartCallbackController::class,
             'feedback-{decision}-{chat_id}' => RestartCallbackController::class,
         ];

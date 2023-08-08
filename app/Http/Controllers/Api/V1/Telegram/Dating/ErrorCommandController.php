@@ -20,7 +20,7 @@ class ErrorCommandController extends CommandController
             $register_service->setUserData($user_data);
             $register_service->proceed();
         } else {
-            $this->respondWithMessage('Ошибка!');
+            $this->respondWithMessage('Неверная команда!');
         }
     }
 }

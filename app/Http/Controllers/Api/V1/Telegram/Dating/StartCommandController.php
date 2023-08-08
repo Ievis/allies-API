@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1\Telegram\Dating;
 
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 
 class StartCommandController extends CommandController
 {
@@ -22,24 +21,27 @@ class StartCommandController extends CommandController
             'name' => [
                 'is_completed' => false,
                 'is_pending' => false,
+                'type' => 'text',
                 'value' => null,
                 'method' => 'name'
             ],
             'subject' => [
                 'is_completed' => false,
                 'is_pending' => false,
+                'type' => 'callback',
                 'value' => null,
                 'method' => 'subject'
             ],
             'category' => [
                 'is_completed' => false,
                 'is_pending' => false,
+                'type' => 'callback',
                 'value' => null,
                 'method' => 'category'
             ],
         ];
 
-        Cache::set($this->data->getUsername(), $user_data, 60);
+        Cache::set($this->data->getUsername(), $user_data, 60 * 60);
 
         $register_service = new RegisterService();
         $register_service->setTelegramUserData($this->data);
