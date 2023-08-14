@@ -14,8 +14,10 @@ class ResetCallbackController extends CommandController
         $attribute = $this->callback_query_args['attribute'];
 
         $username = $this->data->getUsername();
-        $user_data = Cache::get($username);
+        $user_data = Cache::get($username . ':' . 'register-data');
+
         $user_data[$attribute]['is_completed'] = false;
+
 
         $register_service = new RegisterService();
         $register_service->setTelegramUserData($this->data);

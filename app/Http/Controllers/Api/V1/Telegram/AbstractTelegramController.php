@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\V1\Telegram;
 
 use App\Services\TelegramRequestService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use stdClass;
 
 abstract class AbstractTelegramController
@@ -51,11 +50,19 @@ abstract class AbstractTelegramController
         $this->query_parser = new QueryParser($this->callback_queries);
     }
 
+    private function dieIfEdited()
+    {
+        if (!empty($this->update_data->edited_message)) {
+            die();
+        }
+    }
+
     public function index(Request $request)
     {
         $request_body = $request->getContent();
         $this->update_data = json_decode($request_body);
 
+        $this->dieIfEdited();
         $this->setTelegramUserData();
         $this->handle();
     }

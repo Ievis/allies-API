@@ -10,6 +10,7 @@ class TelegramDatingFeedback extends Model
 {
     use HasFactory;
 
+    protected $table = 'telegram_dating_feedback';
     protected $guarded = false;
 
     public function users()

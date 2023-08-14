@@ -12,7 +12,7 @@ class RegisterCallbackController extends CommandController
         $this->deleteMessage($callback_query->message->message_id);
 
         $username = $this->data->getUsername();
-        $user_data = Cache::get($username);
+        $user_data = Cache::get($username . ':' . 'register-data');
 
         $register_service = new RegisterService();
         $register_service->setTelegramUserData($this->data);

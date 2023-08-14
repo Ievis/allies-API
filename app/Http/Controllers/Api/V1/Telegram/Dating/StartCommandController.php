@@ -8,6 +8,8 @@ class StartCommandController extends CommandController
 {
     public function __invoke()
     {
+        $username = $this->data->getUsername();
+
         $this->telegram_request_service
             ->setMethodName('sendMessage')
             ->setParams([
@@ -39,9 +41,18 @@ class StartCommandController extends CommandController
                 'value' => null,
                 'method' => 'category'
             ],
+            'about' => [
+                'is_completed' => false,
+                'is_pending' => false,
+                'type' => 'text',
+                'value' => null,
+                'method' => 'about'
+            ],
         ];
 
-        Cache::set($this->data->getUsername(), $user_data, 60 * 60);
+        Cache::forget($username . ':' . 'reset-bot-message-id');
+        Cache::forget($username . ':' . 'summary-message-id');
+        Cache::set($username . ':' . 'register-data', $user_data, 60 * 60);
 
         $register_service = new RegisterService();
         $register_service->setTelegramUserData($this->data);

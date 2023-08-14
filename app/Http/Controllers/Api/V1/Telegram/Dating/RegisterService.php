@@ -46,21 +46,22 @@ class RegisterService extends CommandController
 
                         return;
                     }
-
-                    $this->respondWithMessage($this->getAttributeMessage($field_name, 'info') . $value);
+                    if (!Cache::has($username . ':' . 'reset-bot-message-id')) {
+                        $this->respondWithMessage($this->getAttributeMessage($field_name, 'info') . $value);
+                    }
                 }
 
                 $this->user_data[$field_name]['is_pending'] = false;
                 $this->user_data[$field_name]['is_completed'] = true;
                 $this->user_data[$field_name]['value'] = $value;
 
-                Cache::set($username, $this->user_data, 60 * 60);
+                Cache::set($username . ':' . 'register-data', $this->user_data, 60 * 60);
 
                 $summary_message_id = Cache::get($username . ':' . 'summary-message-id');
-                if ($summary_message_id) {
-                    $reset_bot_message_id = Cache::get($username . ':' . 'reset-bot-message-id');
+                $reset_bot_message_id = Cache::get($username . ':' . 'reset-bot-message-id');
+                if ($reset_bot_message_id) {
                     Cache::forget($username . ':' . 'reset-bot-message-id');
-                    $this->deleteMessage($this->data->getMessage()->message_id);
+                    $this->deleteMessage($this->data->getMessage()->message_id ?? $this->data->getCallbackQuery()->message->message_id);
                     $this->deleteMessage($reset_bot_message_id);
                 }
                 if ($summary_message_id) {
@@ -77,6 +78,9 @@ class RegisterService extends CommandController
                                     'Предмет: ' . $this->user_data['subject']['value'] .
                                     PHP_EOL .
                                     'Категория: ' . $this->user_data['category']['value'] .
+                                    PHP_EOL .
+                                    PHP_EOL .
+                                    'О себе: ' . $this->user_data['about']['value'] .
                                     PHP_EOL .
                                     PHP_EOL .
                                     '<strong>Всё верно?</strong>',
@@ -153,17 +157,21 @@ class RegisterService extends CommandController
         $name = $this->user_data['name']['value'];
         $subject = $this->user_data['subject']['value'];
         $category = $this->user_data['category']['value'];
+        $about = $this->user_data['about']['value'];
 
-        Cache::forget($username);
-        TelegramDatingUser::updateOrCreate([
+        Cache::forget($username . ':' . 'register-data');
+        $user = TelegramDatingUser::updateOrCreate([
             'username' => $username
         ], [
             'name' => $name,
             'subject' => $subject,
-            'category' => $category
+            'category' => $category,
+            'about' => $about
         ]);
 
         $this->respondWithMessage(' <strong>Отлично!</strong> ' . PHP_EOL . 'Ваши данные сохранены. Мы вам сообщим, когда найдём учеников со схожими интересами.');
+
+        return $user;
     }
 
     private function getAttributeMessage(string $attribute_name, string $message_type)
@@ -176,7 +184,7 @@ class RegisterService extends CommandController
         $username = $this->data->getUsername();
         $this->user_data[$field]['is_pending'] = true;
 
-        Cache::set($username, $this->user_data, 60 * 60);
+        Cache::set($username . ':' . 'register-data', $this->user_data, 60 * 60);
     }
 
     public function name()
@@ -192,12 +200,25 @@ class RegisterService extends CommandController
         }
     }
 
+    public function about()
+    {
+        $this->setPendingStatus('about');
+
+        $response = $this->respondWithMessage('Напишите о себе');
+        $message_id = $response->result->message_id;
+
+        $username = $this->data->getUsername();
+        if (Cache::has($username . ':' . 'summary-message-id')) {
+            Cache::set($username . ':' . 'reset-bot-message-id', $message_id);
+        }
+    }
+
     public function subject()
     {
         $this->setPendingStatus('subject');
 
         $chat_id = $this->data->getChatId();
-        $this->telegram_request_service
+        $response = $this->telegram_request_service
             ->setMethodName('sendMessage')
             ->setParams([
                 'chat_id' => $chat_id,
@@ -229,6 +250,13 @@ class RegisterService extends CommandController
                 'parse_mode' => 'html',
             ])
             ->make();
+
+        $message_id = $response->result->message_id;
+
+        $username = $this->data->getUsername();
+        if (Cache::has($username . ':' . 'summary-message-id')) {
+            Cache::set($username . ':' . 'reset-bot-message-id', $message_id);
+        }
     }
 
     public function category()
@@ -236,7 +264,7 @@ class RegisterService extends CommandController
         $this->setPendingStatus('category');
 
         $chat_id = $this->data->getChatId();
-        $this->telegram_request_service
+        $response = $this->telegram_request_service
             ->setMethodName('sendMessage')
             ->setParams([
                 'chat_id' => $chat_id,
@@ -268,5 +296,12 @@ class RegisterService extends CommandController
                 'parse_mode' => 'html',
             ])
             ->make();
+
+        $message_id = $response->result->message_id;
+
+        $username = $this->data->getUsername();
+        if (Cache::has($username . ':' . 'summary-message-id')) {
+            Cache::set($username . ':' . 'reset-bot-message-id', $message_id);
+        }
     }
 }

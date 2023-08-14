@@ -13,19 +13,17 @@ class TelegramDatingUser extends Model
 
     protected $guarded = false;
 
-    public function feedback(?bool $reaction)
+    public function feedbacks()
     {
-        return empty($reaction)
-            ? DB::table('telegram_dating_feedbacks')
-                ->where('first_user_id', $this->id)
-                ->orWhere('second_user_id', $this->id)
+        return $this->hasMany(TelegramDatingFeedback::class, 'second_user_id')
+            ->union($this->hasMany(TelegramDatingFeedback::class, 'second_user_id')->toBase());
+    }
 
-            : DB::table('telegram_dating_feedbacks')
-                ->where('first_user_id', $this->id)
-                ->where('first_user_reaction', $reaction)
-                ->where('second_user_reaction', $reaction)
-                ->orWhere('second_user_id', $this->id)
-                ->where('first_user_reaction', $reaction)
-                ->where('second_user_reaction', $reaction);
+    public function relevantUsers()
+    {
+        return TelegramDatingUser::query()
+            ->where('id', '!=', $this->id)
+            ->where('subject', $this->subject)
+            ->where('category', $this->category);
     }
 }

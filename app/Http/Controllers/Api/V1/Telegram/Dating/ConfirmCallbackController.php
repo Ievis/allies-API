@@ -13,7 +13,7 @@ class ConfirmCallbackController extends CommandController
 
         $chat_id = $this->data->getChatId();
         $callback_query = $this->data->getCallbackQuery();
-        $user_data = Cache::get($username);
+        $user_data = Cache::get($username . ':' . 'register-data');
         $this->telegram_request_service
             ->setMethodName('editMessageText')
             ->setParams([
@@ -25,7 +25,10 @@ class ConfirmCallbackController extends CommandController
                         PHP_EOL .
                         'Предмет: ' . $user_data['subject']['value'] .
                         PHP_EOL .
-                        'Категория: ' . $user_data['category']['value'],
+                        'Категория: ' . $user_data['category']['value'] .
+                        PHP_EOL .
+                        PHP_EOL .
+                        'О себе: ' . $user_data['about']['value'],
                     'parse_mode' => 'html'
 //                'reply_markup' => json_encode([
 //                        'inline_keyboard' => [
@@ -41,9 +44,64 @@ class ConfirmCallbackController extends CommandController
             $register_service->setTelegramUserData($this->data);
             $register_service->setCallbackArgs($this->callback_query_args);
 
-            $user_data = Cache::get($username);
             $register_service->setUserData($user_data);
-            $register_service->persist();
+            $user = $register_service->persist();
+
+            $relevant_users = $user
+                ->relevantUsers()
+                ->whereDoesntHave('feedbacks', function ($query) use ($user) {
+                    return $query->where('first_user_id', $user->id)
+                        ->orWhere('is_resolved', true);
+                })
+                ->limit(5)
+                ->get();
+
+            if ($relevant_users->isEmpty()) {
+                $this->respondWithMessage(
+                    '<strong>Пока что нет подходящих людей.</strong>' .
+                    PHP_EOL .
+                    'Как только найдутся люди с такими же интересами, мы вам сразу сообщим.'
+                );
+
+                return;
+            }
+            $relevant_user = $relevant_users->shift();
+            $user->update(['is_waiting' => false]);
+            Cache::set($username . ':' . 'relevant-users', $relevant_users);
+
+            $this->telegram_request_service
+                ->setMethodName('sendMessage')
+                ->setParams([
+                    'chat_id' => $chat_id,
+                    'text' => 'Имя: ' .
+                        $relevant_user->name .
+                        PHP_EOL .
+                        'Предмет: ' .
+                        $relevant_user->subject .
+                        PHP_EOL .
+                        'Категория: ' .
+                        $relevant_user->category .
+                        PHP_EOL .
+                        PHP_EOL .
+                        'О себе: ' .
+                        $relevant_user->about,
+                    'reply_markup' => json_encode([
+                        'inline_keyboard' => [
+                            [
+                                [
+                                    'text' => 'Показать',
+                                    'callback_data' => 'feedback-1-' . $user->id . '-' . $relevant_user->id
+                                ],
+                                [
+                                    'text' => 'Следующий',
+                                    'callback_data' => 'feedback-0-' . $user->id . '-' . $relevant_user->id
+                                ]
+                            ]
+                        ]
+                    ]),
+                    'parse_mode' => 'html',
+                ])
+                ->make();
 
             return;
         }
