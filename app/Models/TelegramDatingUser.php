@@ -13,10 +13,14 @@ class TelegramDatingUser extends Model
 
     protected $guarded = false;
 
-    public function feedbacks()
+    public function firstUserFeedbacks()
     {
-        return $this->hasMany(TelegramDatingFeedback::class, 'second_user_id')
-            ->union($this->hasMany(TelegramDatingFeedback::class, 'second_user_id')->toBase());
+        return $this->hasMany(TelegramDatingFeedback::class, 'first_user_id');
+    }
+
+    public function secondUserFeedbacks()
+    {
+        return $this->hasMany(TelegramDatingFeedback::class, 'second_user_id');
     }
 
     public function relevantUsers()
@@ -25,5 +29,34 @@ class TelegramDatingUser extends Model
             ->where('id', '!=', $this->id)
             ->where('subject', $this->subject)
             ->where('category', $this->category);
+    }
+
+    public function relevantUsersWithFeedbacks()
+    {
+        $relevant_liked_users = $this
+            ->relevantUsers()
+            ->whereHas('firstUserFeedbacks', function ($query) {
+                return $query->where('first_user_reaction', true)
+                    ->where('second_user_id', $this->id)
+                    ->where('is_resolved', false);
+            })
+            ->with(['firstUserFeedbacks' => function ($query) {
+                return $query->where('first_user_reaction', true)
+                    ->where('second_user_id', $this->id)
+                    ->where('is_resolved', false);
+            }]);
+
+        $relevant_unliked_users = $this
+            ->relevantUsers()
+            ->whereDoesntHave('firstUserFeedbacks', function ($query) {
+                return $query->where('second_user_id', $this->id);
+            })
+            ->whereDoesntHave('secondUserFeedbacks', function ($query) {
+                return $query->where('first_user_id', $this->id);
+            });
+
+        return $relevant_liked_users
+            ->union($relevant_unliked_users)
+            ->limit(5);
     }
 }
