@@ -61,6 +61,7 @@ class ConfirmCallbackController extends CommandController
             $relevant_user = $relevant_users->shift();
             $user->update(['is_waiting' => false]);
             Cache::set($username . ':' . 'relevant-users', $relevant_users);
+            Cache::set($username . ':' . 'id', $user->id);
 
             $this->nextUser($user, $relevant_user, true);
 

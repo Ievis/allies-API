@@ -21,7 +21,7 @@ class TelegramController extends AbstractTelegramController
             'confirm-{decision}' => ConfirmCallbackController::class,
             'register-{attribute}-{value}' => RegisterCallbackController::class,
             'restart-{decision}-{message_id}' => RestartCallbackController::class,
-            'feedback-{decision}-{first_user_id}-{second_user_id}' => FeedbackCallbackController::class,
+            'feedback-{decision}-{first_user_id}-{second_user_id}-{is_endless}' => FeedbackCallbackController::class,
         ];
     }
 

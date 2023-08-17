@@ -53,11 +53,11 @@ class CommandController extends TelegramController
                         [
                             [
                                 'text' => 'Показать',
-                                'callback_data' => 'feedback-1-' . $first_user_id . '-' . $second_user_id
+                                'callback_data' => 'feedback-1-' . $first_user_id . '-' . $second_user_id . '-' . 0
                             ],
                             [
                                 'text' => 'Следующий',
-                                'callback_data' => 'feedback-0-' . $first_user_id . '-' . $second_user_id
+                                'callback_data' => 'feedback-0-' . $first_user_id . '-' . $second_user_id . '-' . 0
                             ]
                         ]
                     ]

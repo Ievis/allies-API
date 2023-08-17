@@ -16,6 +16,8 @@ return new class extends Migration {
             $table->foreignId('second_user_id')->constrained('telegram_dating_users')->cascadeOnDelete();
             $table->boolean('first_user_reaction')->default(false);
             $table->boolean('second_user_reaction')->default(false);
+            $table->string('subject');
+            $table->string('category');
             $table->boolean('is_resolved')->default(false);
             $table->timestamps();
         });

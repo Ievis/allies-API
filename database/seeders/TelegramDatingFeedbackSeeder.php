@@ -23,6 +23,8 @@ class TelegramDatingFeedbackSeeder extends Seeder
                 'second_user_id' => 1,
                 'first_user_reaction' => true,
                 'second_user_reaction' => false,
+                'subject' => $user->subject,
+                'category' => $user->category,
                 'is_resolved' => false
             ]);
         }

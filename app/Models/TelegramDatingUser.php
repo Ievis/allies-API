@@ -38,6 +38,8 @@ class TelegramDatingUser extends Model
             ->whereHas('firstUserFeedbacks', function ($query) {
                 return $query->where('first_user_reaction', true)
                     ->where('second_user_id', $this->id)
+                    ->where('subject', $this->subject)
+                    ->where('category', $this->category)
                     ->where('is_resolved', false);
             })
             ->with(['firstUserFeedbacks' => function ($query) {
@@ -49,10 +51,14 @@ class TelegramDatingUser extends Model
         $relevant_unliked_users = $this
             ->relevantUsers()
             ->whereDoesntHave('firstUserFeedbacks', function ($query) {
-                return $query->where('second_user_id', $this->id);
+                return $query->where('second_user_id', $this->id)
+                    ->where('subject', $this->subject)
+                    ->where('category', $this->category);
             })
             ->whereDoesntHave('secondUserFeedbacks', function ($query) {
-                return $query->where('first_user_id', $this->id);
+                return $query->where('first_user_id', $this->id)
+                    ->where('subject', $this->subject)
+                    ->where('category', $this->category);
             });
 
         return $relevant_liked_users
