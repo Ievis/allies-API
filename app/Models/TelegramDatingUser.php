@@ -45,6 +45,8 @@ class TelegramDatingUser extends Model
             ->with(['firstUserFeedbacks' => function ($query) {
                 return $query->where('first_user_reaction', true)
                     ->where('second_user_id', $this->id)
+                    ->where('subject', $this->subject)
+                    ->where('category', $this->category)
                     ->where('is_resolved', false);
             }]);
 

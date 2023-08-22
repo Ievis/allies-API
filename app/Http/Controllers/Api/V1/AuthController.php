@@ -90,6 +90,7 @@ class AuthController extends Controller
 
         $user = $user ?? UserService::createUser([
             'name' => $response['first_name'],
+            'surname' => $response['last_name'],
             'image' => $response['photo_max_orig'],
             'vk_id' => $response['id'],
             'email' => $response['email'] ?? null,

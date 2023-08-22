@@ -1,3 +1,9 @@
-## Проект БД:
+## Установка
 
-![alt text](https://github.com/Ievis/allies-api/blob/main/db_project.png)
+`composer install`
+
+## Запуск приложения
+
+```
+docker-compose up -d
+```
