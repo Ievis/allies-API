@@ -142,6 +142,18 @@ abstract class AbstractTelegramController
             ->make();
     }
 
+    protected function respondWithPopup(int $callback_query_id, string $text)
+    {
+        $this->telegram_request_service
+            ->setMethodName('answerCallbackQuery')
+            ->setParams([
+                'callback_query_id' => $callback_query_id,
+                'text' => $text,
+                'show_alert' => true
+            ])
+            ->make();
+    }
+
     protected function deleteMessage(?int $message_id = null, ?int $chat_id = null)
     {
         $chat_id = $chat_id ?? $this->data->getChatId();

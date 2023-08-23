@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\V1\Telegram\Dating;
 use App\Models\TelegramDatingFeedback;
 use App\Models\TelegramDatingUser;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 
 class FeedbackCallbackController extends CommandController
 {
@@ -55,7 +54,8 @@ class FeedbackCallbackController extends CommandController
 
             return;
         }
-        $user_id = Cache::get($this->data->getUsername() . ':' . 'id');
+        $user = Cache::get($this->data->getUsername() . ':' . 'user-data');
+        $user_id = $user->id;
         if ($feedback->first_user_id == $user_id) {
             $user = TelegramDatingUser::find($user_id);
 
@@ -122,40 +122,5 @@ class FeedbackCallbackController extends CommandController
         $relevant_user = $this->getRelevantUser($user, $relevant_users);
 
         if (!$this->nextUserIfExists($user, $relevant_user)) die();
-    }
-
-    private function getRelevantUsers($user)
-    {
-        $relevant_users = Cache::get($user->username . ':' . 'relevant-users');
-        if (collect($relevant_users)->isEmpty()) {
-            $relevant_users = $user->relevantUsersWithFeedbacks()->get();
-        }
-
-        return $relevant_users;
-    }
-
-    private function getRelevantUser($user, $relevant_users)
-    {
-        $relevant_user = $relevant_users->shift();
-        Cache::set($user->username . ':' . 'relevant-users', $relevant_users);
-
-        return $relevant_user;
-    }
-
-    private function nextUserIfExists($user, $relevant_user): bool
-    {
-        if (empty($relevant_user)) {
-            $this->respondWithMessage(
-                '<strong>Пока что нет подходящих людей.</strong>' .
-                PHP_EOL .
-                'Как только найдутся люди с такими же интересами, мы вам сразу сообщим.'
-            );
-
-            return false;
-        }
-
-        $this->nextUser($user, $relevant_user);
-
-        return true;
     }
 }

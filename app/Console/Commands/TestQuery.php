@@ -28,7 +28,7 @@ class TestQuery extends Command
     {
         $user = TelegramDatingUser::first();
         $relevant_users = $user->relevantUsersWithFeedbacks()->get()->toArray();
-
+        $relevant_users = $user->likedUsers()->get()->toArray();
         dd($relevant_users);
     }
 }

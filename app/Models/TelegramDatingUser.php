@@ -67,4 +67,26 @@ class TelegramDatingUser extends Model
             ->union($relevant_unliked_users)
             ->limit(5);
     }
+
+    public function likedUsers()
+    {
+        return $this::query()
+            ->where('id', '!=', $this->id)
+            ->whereHas('firstUserFeedbacks', function ($query) {
+                return $query->where('second_user_id', $this->id)
+                    ->where('first_user_reaction', true)
+                    ->where('second_user_reaction', true)
+                    ->where('subject', $this->subject)
+                    ->where('category', $this->category)
+                    ->where('is_resolved', true);
+            })
+            ->orWhereHas('secondUserFeedbacks', function ($query) {
+                return $query->where('first_user_id', $this->id)
+                    ->where('first_user_reaction', true)
+                    ->where('second_user_reaction', true)
+                    ->where('subject', $this->subject)
+                    ->where('category', $this->category)
+                    ->where('is_resolved', true);
+            });
+    }
 }
