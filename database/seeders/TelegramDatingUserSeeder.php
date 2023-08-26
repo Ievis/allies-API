@@ -15,18 +15,12 @@ class TelegramDatingUserSeeder extends Seeder
     {
         TelegramDatingUser::create([
             'username' => 'levchaba',
+            'chat_id' => '1013168319',
             'name' => 'Leo',
             'subject' => 'Математика',
             'category' => 'ЕГЭ',
             'about' => 'I am Leo'
         ]);
-        TelegramDatingUser::create([
-            'username' => 'sendanother',
-            'name' => 'Dima',
-            'subject' => 'Математика',
-            'category' => 'ЕГЭ',
-            'about' => 'I am Leo'
-        ]);
-        TelegramDatingUser::factory(1000)->create();
+        TelegramDatingUser::factory(300)->create();
     }
 }

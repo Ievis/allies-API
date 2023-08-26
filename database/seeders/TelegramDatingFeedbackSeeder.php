@@ -14,7 +14,7 @@ class TelegramDatingFeedbackSeeder extends Seeder
      */
     public function run(): void
     {
-        $users = TelegramDatingUser::all()->take(700);
+        $users = TelegramDatingUser::all()->take(200);
         $users->shift();
 
         foreach ($users as $user) {

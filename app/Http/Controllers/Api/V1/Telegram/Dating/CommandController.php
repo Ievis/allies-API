@@ -2,13 +2,11 @@
 
 namespace App\Http\Controllers\Api\V1\Telegram\Dating;
 
-use App\Models\TelegramDatingUser;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 
 class CommandController extends TelegramController
 {
-    protected function getRelevantUsers($user)
+    public function getRelevantUsers($user)
     {
         $relevant_users = Cache::get($user->username . ':' . 'relevant-users');
         if (collect($relevant_users)->isEmpty()) {
@@ -18,7 +16,7 @@ class CommandController extends TelegramController
         return $relevant_users;
     }
 
-    protected function getRelevantUser($user, $relevant_users, $after_liked_users = false)
+    public function getRelevantUser($user, $relevant_users, $after_liked_users = false)
     {
         $relevant_user = $after_liked_users
             ? $relevant_users->first()
@@ -33,7 +31,7 @@ class CommandController extends TelegramController
         return Cache::get($user->username . ':' . 'current-user');
     }
 
-    protected function nextUser($user, $relevant_user, $after_register = false)
+    public function nextUser($user, $relevant_user, $after_register = false)
     {
         $chat_id = $this->data->getChatId();
         $callback_query = $this->data->getCallbackQuery();
@@ -53,7 +51,7 @@ class CommandController extends TelegramController
             ? 'sendMessage'
             : 'editMessageText';
 
-        $this->telegram_request_service
+        return $this->telegram_request_service
             ->setMethodName($method_name)
             ->setParams([
                 'chat_id' => $chat_id,
@@ -95,7 +93,7 @@ class CommandController extends TelegramController
             ->make();
     }
 
-    protected function nextUserIfExists($user, $relevant_user, $after_register = false): bool
+    public function nextUserIfExists($user, $relevant_user, $after_register = false)
     {
         $callback_query = $this->data->getCallbackQuery();
         if (empty($relevant_user)) {
@@ -108,7 +106,126 @@ class CommandController extends TelegramController
             return false;
         }
 
-        $this->nextUser($user, $relevant_user, $after_register);
-        return true;
+        return $this->nextUser($user, $relevant_user, $after_register);
+    }
+
+    protected function displayLikedUserWithPagination($liked_user, $enumerated_buttons, $pagination_buttons)
+    {
+        $chat_id = $this->data->getChatId();
+        $callback_query = $this->data->getCallbackQuery();
+
+        $this->telegram_request_service
+            ->setMethodName('editMessageText')
+            ->setParams([
+                'chat_id' => $chat_id,
+                'message_id' => $callback_query->message->message_id,
+                'text' => 'Ник в telegram: ' .
+                    '@' .
+                    $liked_user->username .
+                    PHP_EOL .
+                    'Имя: ' .
+                    $liked_user->name .
+                    PHP_EOL .
+                    'Предмет: ' .
+                    $liked_user->subject .
+                    PHP_EOL .
+                    'Категория: ' .
+                    $liked_user->category .
+                    PHP_EOL .
+                    PHP_EOL .
+                    'О себе: ' .
+                    $liked_user->about,
+                'reply_markup' => json_encode([
+                    'inline_keyboard' => [
+                        $enumerated_buttons[0] ?? [],
+                        $enumerated_buttons[1] ?? [],
+                        $enumerated_buttons[2] ?? [],
+                        $pagination_buttons,
+                        [
+                            [
+                                'text' => 'Назад',
+                                'callback_data' => 'is-users-active' . '-' . 0
+                            ]
+                        ]
+                    ]
+                ]),
+                'parse_mode' => 'html',
+            ])
+            ->make();
+    }
+
+    protected function getLikedUsersIfExist($user)
+    {
+        $username = $this->data->getUsername();
+        $callback_query = $this->data->getCallbackQuery();
+        $liked_users = Cache::get($username . ':' . 'liked-users');
+        if (empty($liked_users)) {
+            $liked_users = $user->likedUsers()->get();
+            Cache::set($username . ':' . 'liked-users', $liked_users, 3600);
+        }
+
+        if ($liked_users->isEmpty()) {
+            $this->respondWithPopup($callback_query->id, 'Пока нет взаимностей в рамках текущих категории и предмета');
+
+            return null;
+        }
+
+        return $liked_users;
+    }
+
+    protected function getLikedUsersEnumeratedButtons($liked_users, $page)
+    {
+        $per_page = 9;
+        $liked_users = $liked_users->forPage($page, $per_page);
+        $enumerated_buttons = $liked_users->map(function ($user, $number) use ($page) {
+            return [
+                'text' => $number + 1,
+                'callback_data' => 'users-show' . '-' . $user->id . '-' . $page
+            ];
+        })->values()->chunk(3);
+
+        return $enumerated_buttons->map(function ($item) {
+            return $item->values();
+        })->toArray();
+    }
+
+    protected function getLikedUsersPaginationButtons($liked_users, $page)
+    {
+        return array_values(array_filter([
+            $this->getPrevPageButton($page),
+            $this->getNextPageButton($liked_users, $page)
+        ]));
+    }
+
+    private function hasPrevPage($page)
+    {
+        return $page != 1;
+    }
+
+    private function hasNextPage($liked_users, $page)
+    {
+        $per_page = 9;
+        $next_page_liked_users = $liked_users->forPage($page + 1, $per_page);
+        return $next_page_liked_users->isNotEmpty();
+    }
+
+    private function getPrevPageButton($page)
+    {
+        return $this->hasPrevPage($page)
+            ? [
+                'text' => '←',
+                'callback_data' => 'users-page' . '-' . $page - 1
+            ]
+            : [];
+    }
+
+    private function getNextPageButton($liked_users, $page)
+    {
+        return $this->hasNextPage($liked_users, $page)
+            ? [
+                'text' => '→',
+                'callback_data' => 'users-page' . '-' . $page + 1
+            ]
+            : [];
     }
 }

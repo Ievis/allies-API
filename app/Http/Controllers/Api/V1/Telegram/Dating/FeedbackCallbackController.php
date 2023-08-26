@@ -51,14 +51,10 @@ class FeedbackCallbackController extends CommandController
             $relevant_user = $this->getRelevantUser($user, $relevant_users);
 
             if (!$this->nextUserIfExists($user, $relevant_user)) die();
-
             return;
         }
         $user = Cache::get($this->data->getUsername() . ':' . 'user-data');
-        $user_id = $user->id;
-        if ($feedback->first_user_id == $user_id) {
-            $user = TelegramDatingUser::find($user_id);
-
+        if ($feedback->first_user_id == $user->id) {
             $relevant_users = $this->getRelevantUsers($user);
             $relevant_user = $this->getRelevantUser($user, $relevant_users);
             if (!$this->nextUserIfExists($user, $relevant_user)) die();
@@ -82,6 +78,8 @@ class FeedbackCallbackController extends CommandController
         ]);
 
         if ($decision) {
+            $this->affectLikedUsersCache($first_user, $second_user);
+
             $this->telegram_request_service
                 ->setMethodName('editMessageText')
                 ->setParams([
@@ -122,5 +120,20 @@ class FeedbackCallbackController extends CommandController
         $relevant_user = $this->getRelevantUser($user, $relevant_users);
 
         if (!$this->nextUserIfExists($user, $relevant_user)) die();
+    }
+
+    private function affectLikedUsersCache($first_user, $second_user)
+    {
+        $first_liked_users = Cache::get($first_user->username . ':' . 'liked-users');
+        $second_liked_users = Cache::get($second_user->username . ':' . 'liked-users');
+
+        if ($first_liked_users) {
+            $first_liked_users->push($second_user);
+            Cache::set($first_user->username . ':' . 'liked-users', $first_liked_users, 3600);
+        }
+        if ($second_liked_users) {
+            $second_liked_users->push($first_user);
+            Cache::set($second_user->username . ':' . 'liked-users', $second_liked_users, 3600);
+        }
     }
 }

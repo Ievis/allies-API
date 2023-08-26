@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\V1\Telegram\Dating;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class ErrorCommandController extends CommandController
 {
     public function __invoke()
     {
+        Log::info($this->data->getChatId());
         $username = $this->data->getUsername();
         $user_data = Cache::get($username . ':' . 'register-data');
 

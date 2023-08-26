@@ -154,15 +154,20 @@ class RegisterService extends CommandController
     public function persist()
     {
         $username = $this->data->getUsername();
+        $chat_id = $this->data->getChatId();
         $name = $this->user_data['name']['value'];
         $subject = $this->user_data['subject']['value'];
         $category = $this->user_data['category']['value'];
         $about = $this->user_data['about']['value'];
 
         Cache::forget($username . ':' . 'register-data');
+        Cache::forget($username . ':' . 'liked-users');
+        Cache::forget($username . ':' . 'current-user');
+        Cache::forget($username . ':' . 'relevant-users');
         $user = TelegramDatingUser::updateOrCreate([
             'username' => $username
         ], [
+            'chat_id' => $chat_id,
             'name' => $name,
             'subject' => $subject,
             'category' => $category,

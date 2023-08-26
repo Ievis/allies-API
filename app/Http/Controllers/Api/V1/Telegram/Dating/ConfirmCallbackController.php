@@ -62,8 +62,10 @@ class ConfirmCallbackController extends CommandController
             $user->update(['is_waiting' => false]);
             Cache::set($username . ':' . 'relevant-users', $relevant_users);
             Cache::set($username . ':' . 'user-data', $user);
-
-            $this->nextUserIfExists($user, $relevant_user, true);
+            $message = $this->nextUserIfExists($user, $relevant_user, true);
+            if ($message) {
+                Cache::set($username . ':' . 'main-message-id', $message->result->message_id);
+            }
 
             return;
         }
