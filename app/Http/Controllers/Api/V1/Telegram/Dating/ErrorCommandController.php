@@ -9,7 +9,6 @@ class ErrorCommandController extends CommandController
 {
     public function __invoke()
     {
-        Log::info($this->data->getChatId());
         $username = $this->data->getUsername();
         $user_data = Cache::get($username . ':' . 'register-data');
 

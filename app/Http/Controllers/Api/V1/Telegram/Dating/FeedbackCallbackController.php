@@ -10,10 +10,10 @@ class FeedbackCallbackController extends CommandController
 {
     public function __invoke()
     {
+        $this->deleteNotificationMessageIfExists();
         $chat_id = $this->data->getChatId();
         $callback_query = $this->data->getCallbackQuery();
         $decision = $this->callback_query_args['decision'];
-        $is_endless = $this->callback_query_args['is_endless'];
         $first_user_id = $this->callback_query_args['first_user_id'];
         $second_user_id = $this->callback_query_args['second_user_id'];
 
@@ -49,25 +49,23 @@ class FeedbackCallbackController extends CommandController
             ]);
             $relevant_users = $this->getRelevantUsers($user);
             $relevant_user = $this->getRelevantUser($user, $relevant_users);
+            $this->nextUserIfExists($user, $relevant_user);
 
-            if (!$this->nextUserIfExists($user, $relevant_user)) die();
             return;
         }
         $user = Cache::get($this->data->getUsername() . ':' . 'user-data');
         if ($feedback->first_user_id == $user->id) {
             $relevant_users = $this->getRelevantUsers($user);
             $relevant_user = $this->getRelevantUser($user, $relevant_users);
-            if (!$this->nextUserIfExists($user, $relevant_user)) die();
+            $this->nextUserIfExists($user, $relevant_user);
 
             return;
         }
 
         if ($feedback->is_resolved) {
-            if (!$is_endless) return;
-
             $relevant_users = $this->getRelevantUsers($user);
             $relevant_user = $this->getRelevantUser($user, $relevant_users);
-            if (!$this->nextUserIfExists($user, $relevant_user)) die();
+            $this->nextUserIfExists($user, $relevant_user);
 
             return;
         }
@@ -105,7 +103,7 @@ class FeedbackCallbackController extends CommandController
                             [
                                 [
                                     'text' => 'Следующий',
-                                    'callback_data' => 'feedback-1-' . $first_user_id . '-' . $second_user_id . '-' . 1
+                                    'callback_data' => 'feedback-1-' . $first_user_id . '-' . $second_user_id
                                 ]
                             ]
                         ]
@@ -116,10 +114,10 @@ class FeedbackCallbackController extends CommandController
 
             return;
         }
+
         $relevant_users = $this->getRelevantUsers($user);
         $relevant_user = $this->getRelevantUser($user, $relevant_users);
-
-        if (!$this->nextUserIfExists($user, $relevant_user)) die();
+        $this->nextUserIfExists($user, $relevant_user);
     }
 
     private function affectLikedUsersCache($first_user, $second_user)
@@ -134,6 +132,14 @@ class FeedbackCallbackController extends CommandController
         if ($second_liked_users) {
             $second_liked_users->push($first_user);
             Cache::set($second_user->username . ':' . 'liked-users', $second_liked_users, 3600);
+        }
+    }
+
+    private function deleteNotificationMessageIfExists()
+    {
+        $notification_message_id = Cache::get($this->data->getUsername() . ':' . 'notification-message-id');
+        if($notification_message_id) {
+            $this->deleteMessage($notification_message_id);
         }
     }
 }

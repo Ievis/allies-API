@@ -7,6 +7,7 @@ use App\Models\TelegramDatingUser;
 use App\Services\TelegramRequestService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class DatingNotification extends Command
 {
@@ -29,101 +30,141 @@ class DatingNotification extends Command
      */
     public function handle()
     {
-        $delayed_ids = Cache::tags(['cron-delay'])->get('id');
-        $waiting_users_query = TelegramDatingUser::query()
-            ->where('is_waiting', true);
-        $waiting_users = empty($delayed_ids)
-            ? $waiting_users_query->get()
-            : $waiting_users_query->whereNotIn('id', $delayed_ids)->get();
+        $delayed_ids = (array)Cache::tags(['cron-delay'])->get('id');
+        $waiting_users = $this->getWaitingUsers($delayed_ids);
 
         foreach ($waiting_users as $waiting_user) {
-            $delayed_ids = Cache::tags(['cron-delay'])->get('id');
-
             $relevant_users = $waiting_user->relevantUsersWithFeedbacks()->get();
             if ($relevant_users->isEmpty()) {
                 $this->affectDelayIdCache($waiting_user, $delayed_ids);
 
                 continue;
             }
-            var_dump($waiting_user->name);
             $relevant_user = $relevant_users->shift();
-            $feedbacks = $relevant_user->getRelation('firstUserFeedbacks');
-
             Cache::set($waiting_user->username . ':' . 'relevant-users', $relevant_users);
-            $main_message_id = Cache::get($waiting_user->username . ':' . 'main-message-id');
 
-            $first_user_id = $feedbacks->isEmpty()
-                ? $waiting_user->id
-                : $relevant_user->id;
-            $second_user_id = $first_user_id === $waiting_user->id
-                ? $relevant_user->id
-                : $waiting_user->id;
-            $prefix = $feedbacks->isEmpty()
-                ? ''
-                : '<strong>Вас лайкнули!</strong>' . PHP_EOL;
+            $this->notify($relevant_user, $waiting_user);
+            $this->affectDelayIdCache($waiting_user, $delayed_ids);
 
-            $chat_id = $waiting_user->chat_id;
+            $waiting_user->is_waiting = false;
+            $waiting_user->save();
+            var_dump($delayed_ids);
+        }
+    }
 
-            $telegram_request_service = new TelegramRequestService(env('TELEGRAM_DATING_BOT_API_TOKEN'));
+    private function notify($relevant_user, $waiting_user)
+    {
+        $user_ids = $this->matchUserIds($relevant_user, $waiting_user);
+        $prefix = $this->matchPrefix($relevant_user);
+        $first_user_id = $user_ids['first_user_id'];
+        $second_user_id = $user_ids['second_user_id'];
+        $main_message_id = Cache::get($waiting_user->username . ':' . 'main-message-id');
+        $chat_id = $waiting_user->chat_id;
+
+        $method_name = empty($main_message_id)
+            ? 'sendMessage'
+            : 'editMessageText';
+        $telegram_request_service = new TelegramRequestService(env('TELEGRAM_DATING_BOT_API_TOKEN'));
+
+        $response = $telegram_request_service
+            ->setMethodName($method_name)
+            ->setParams([
+                'chat_id' => $chat_id,
+                'message_id' => $main_message_id,
+                'text' => $prefix . 'Имя: ' .
+                    $relevant_user->name .
+                    PHP_EOL .
+                    'Предмет: ' .
+                    $relevant_user->subject .
+                    PHP_EOL .
+                    'Категория: ' .
+                    $relevant_user->category .
+                    PHP_EOL .
+                    PHP_EOL .
+                    'О себе: ' .
+                    $relevant_user->about,
+                'reply_markup' => json_encode([
+                    'inline_keyboard' => $this->getInlineContent($first_user_id, $second_user_id)
+                ]),
+                'parse_mode' => 'html',
+            ])
+            ->make();
+
+        if ($response->ok and $method_name == 'sendMessage') {
+            Cache::set($waiting_user->username . ':' . 'main-message-id', $response->result->message_id);
+        }
+        if ($method_name == 'editMessageText') {
             $response = $telegram_request_service
-                ->setMethodName('editMessageText')
+                ->setMethodName('sendMessage')
                 ->setParams([
                     'chat_id' => $chat_id,
-                    'message_id' => $main_message_id,
-                    'text' => $prefix . 'Имя: ' .
-                        $relevant_user->name .
-                        PHP_EOL .
-                        'Предмет: ' .
-                        $relevant_user->subject .
-                        PHP_EOL .
-                        'Категория: ' .
-                        $relevant_user->category .
-                        PHP_EOL .
-                        PHP_EOL .
-                        'О себе: ' .
-                        $relevant_user->about,
-                    'reply_markup' => json_encode([
-                        'inline_keyboard' => [
-                            [
-                                [
-                                    'text' => 'Показать',
-                                    'callback_data' => 'feedback-1-' . $first_user_id . '-' . $second_user_id . '-' . 0
-                                ],
-                                [
-                                    'text' => 'Следующий',
-                                    'callback_data' => 'feedback-0-' . $first_user_id . '-' . $second_user_id . '-' . 0
-                                ]
-                            ],
-                            [
-                                [
-                                    'text' => 'Взаимности',
-                                    'callback_data' => 'is-users-active' . '-' . 1
-                                ]
-                            ]
-                        ]
-                    ]),
+                    'text' => '<strong>Мы подобрали для вас новых людей!</strong>',
                     'parse_mode' => 'html',
                 ])
                 ->make();
 
-            if (empty($response->ok)) {
-                $this->affectDelayIdCache($waiting_user, $delayed_ids, 3600);
-
-                continue;
-            }
-
-            $this->affectDelayIdCache($waiting_user, $delayed_ids, 600);
+            Cache::set($waiting_user->username . ':' . 'notification-message-id', $response->result->message_id);
         }
     }
 
-    private function affectDelayIdCache($waiting_user, $delayed_ids, $ttl = 300)
+    private function matchUserIds($relevant_user, $waiting_user)
     {
-        if (empty($delayed_ids)) {
-            Cache::tags(['cron-delay'])->put('id', [$waiting_user->id], $ttl);
+        $feedbacks = $relevant_user->getRelation('firstUserFeedbacks');
+        $first_user_id = $feedbacks->isEmpty()
+            ? $waiting_user->id
+            : $relevant_user->id;
+        $second_user_id = $first_user_id === $waiting_user->id
+            ? $relevant_user->id
+            : $waiting_user->id;
 
-            return;
-        }
+        return [
+            'first_user_id' => $first_user_id,
+            'second_user_id' => $second_user_id
+        ];
+    }
 
+    private function matchPrefix($relevant_user)
+    {
+        $feedbacks = $relevant_user->getRelation('firstUserFeedbacks');
+        return $feedbacks->isEmpty()
+            ? ''
+            : '<strong>Вас лайкнули!</strong>' . PHP_EOL;
+    }
+
+    private function getInlineContent($first_user_id, $second_user_id)
+    {
+        return [
+            [
+                [
+                    'text' => 'Показать',
+                    'callback_data' => 'feedback-1-' . $first_user_id . '-' . $second_user_id . '-' . 0
+                ],
+                [
+                    'text' => 'Следующий',
+                    'callback_data' => 'feedback-0-' . $first_user_id . '-' . $second_user_id . '-' . 0
+                ]
+            ],
+            [
+                [
+                    'text' => 'Взаимности',
+                    'callback_data' => 'is-users-active' . '-' . 1
+                ]
+            ]
+        ];
+    }
+
+    private function getWaitingUsers($delayed_ids)
+    {
+        $waiting_users_query = TelegramDatingUser::query()
+            ->where('is_waiting', true);
+
+        return empty($delayed_ids)
+            ? $waiting_users_query->get()
+            : $waiting_users_query->whereNotIn('id', $delayed_ids)->get();
+    }
+
+    private function affectDelayIdCache($waiting_user, &$delayed_ids, $ttl = 300)
+    {
         $delayed_ids[] = $waiting_user->id;
         Cache::tags(['cron-delay'])->put('id', $delayed_ids, $ttl);
     }

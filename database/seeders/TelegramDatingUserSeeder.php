@@ -21,6 +21,6 @@ class TelegramDatingUserSeeder extends Seeder
             'category' => 'ЕГЭ',
             'about' => 'I am Leo'
         ]);
-        TelegramDatingUser::factory(300)->create();
+        TelegramDatingUser::factory(100)->create();
     }
 }

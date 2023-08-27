@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Telegram\Dating;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class CommandController extends TelegramController
 {
@@ -102,6 +103,10 @@ class CommandController extends TelegramController
                 PHP_EOL .
                 'Как только найдутся люди с такими же интересами, мы вам сразу сообщим.'
             );
+            if (!$user->is_waiting) {
+                $user->is_waiting = true;
+                $user->save();
+            }
 
             return false;
         }

@@ -151,6 +151,14 @@ class RegisterService extends CommandController
             ->make();
     }
 
+    private function forgetUserCacheData($username)
+    {
+        Cache::forget($username . ':' . 'register-data');
+        Cache::forget($username . ':' . 'liked-users');
+        Cache::forget($username . ':' . 'current-user');
+        Cache::forget($username . ':' . 'relevant-users');
+    }
+
     public function persist()
     {
         $username = $this->data->getUsername();
@@ -160,10 +168,6 @@ class RegisterService extends CommandController
         $category = $this->user_data['category']['value'];
         $about = $this->user_data['about']['value'];
 
-        Cache::forget($username . ':' . 'register-data');
-        Cache::forget($username . ':' . 'liked-users');
-        Cache::forget($username . ':' . 'current-user');
-        Cache::forget($username . ':' . 'relevant-users');
         $user = TelegramDatingUser::updateOrCreate([
             'username' => $username
         ], [
@@ -173,6 +177,7 @@ class RegisterService extends CommandController
             'category' => $category,
             'about' => $about
         ]);
+        $this->forgetUserCacheData($username);
 
         $this->respondWithMessage(' <strong>Отлично!</strong> ' . PHP_EOL . 'Ваши данные сохранены. Мы вам сообщим, когда найдём учеников со схожими интересами.');
 
