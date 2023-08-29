@@ -83,7 +83,7 @@ class CommandController extends TelegramController
                         ],
                         [
                             [
-                                'text' => 'Взаимности',
+                                'text' => 'Симпатии',
                                 'callback_data' => 'is-users-active' . '-' . 1
                             ]
                         ]
@@ -97,21 +97,56 @@ class CommandController extends TelegramController
     public function nextUserIfExists($user, $relevant_user, $after_register = false)
     {
         $callback_query = $this->data->getCallbackQuery();
-        if (empty($relevant_user)) {
-            $this->respondWithPopup($callback_query->id,
-                'Пока что нет подходящих людей.' .
-                PHP_EOL .
-                'Как только найдутся люди с такими же интересами, мы вам сразу сообщим.'
-            );
-            if (!$user->is_waiting) {
-                $user->is_waiting = true;
+
+        if (!empty($relevant_user)) {
+            if ($user->is_waiting) {
+                $user->is_waiting = false;
                 $user->save();
             }
 
-            return false;
+            return $this->nextUser($user, $relevant_user, $after_register);
         }
 
-        return $this->nextUser($user, $relevant_user, $after_register);
+        $this->showLikesButton($user, $callback_query);
+        if (!$user->is_waiting) {
+            $user->is_waiting = true;
+            $user->save();
+        }
+
+        return false;
+    }
+
+    protected function showLikesButton($user, $callback_query)
+    {
+        $chat_id = $this->data->getChatId();
+        $main_message_id = Cache::get($user->username . ':' . 'main-message-id');
+        $method_name = empty($main_message_id)
+            ? 'sendMessage'
+            : 'editMessageText';
+
+        $response = $this->telegram_request_service
+            ->setMethodName($method_name)
+            ->setParams([
+                'chat_id' => $chat_id,
+                'message_id' => $callback_query->message->message_id,
+                'text' => 'Пока что для вас нет новых пользователей',
+                'reply_markup' => json_encode([
+                    'inline_keyboard' => [
+                        [
+                            [
+                                'text' => 'Симпатии',
+                                'callback_data' => 'is-users-active' . '-' . 1
+                            ]
+                        ]
+                    ]
+                ]),
+                'parse_mode' => 'html'
+            ])
+            ->make();
+
+        if ($response->ok and $method_name == 'sendMessage') {
+            Cache::set($user->username . ':' . 'main-message-id', $response->result->message_id);
+        }
     }
 
     protected function displayLikedUserWithPagination($liked_user, $enumerated_buttons, $pagination_buttons)
@@ -170,7 +205,7 @@ class CommandController extends TelegramController
         }
 
         if ($liked_users->isEmpty()) {
-            $this->respondWithPopup($callback_query->id, 'Пока нет взаимностей в рамках текущих категории и предмета');
+            $this->respondWithPopup($callback_query->id, 'Пока нет симпатий в рамках текущих категории и предмета');
 
             return null;
         }
@@ -232,5 +267,13 @@ class CommandController extends TelegramController
                 'callback_data' => 'users-page' . '-' . $page + 1
             ]
             : [];
+    }
+
+    protected function deleteNotificationMessageIfExists()
+    {
+        $notification_message_id = Cache::get($this->data->getUsername() . ':' . 'notification-message-id');
+        if ($notification_message_id) {
+            $this->deleteMessage($notification_message_id);
+        }
     }
 }

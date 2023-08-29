@@ -26,10 +26,9 @@ class TestQuery extends Command
      */
     public function handle()
     {
-        
-//        $user = TelegramDatingUser::first();
-//        $relevant_users = $user->relevantUsersWithFeedbacks()->get()->toArray();
+        $user = TelegramDatingUser::first();
+        $relevant_users = $user->relevantUsersWithFeedbacks()->get()->toArray();
 //        $relevant_users = $user->likedUsers()->get()->toArray();
-//        dd($relevant_users);
+        dd($relevant_users);
     }
 }

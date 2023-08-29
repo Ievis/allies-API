@@ -157,6 +157,7 @@ class RegisterService extends CommandController
         Cache::forget($username . ':' . 'liked-users');
         Cache::forget($username . ':' . 'current-user');
         Cache::forget($username . ':' . 'relevant-users');
+        Cache::forget($username . ':' . 'main-message-id');
     }
 
     public function persist()

@@ -9,6 +9,7 @@ class DisplayUsersController extends CommandController
 {
     public function __invoke()
     {
+        $this->deleteNotificationMessageIfExists();
         $username = $this->data->getUsername();
         $decision = $this->callback_query_args['decision'];
         $user = Cache::get($username . ':' . 'user-data');

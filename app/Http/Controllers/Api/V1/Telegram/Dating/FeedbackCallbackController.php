@@ -134,12 +134,4 @@ class FeedbackCallbackController extends CommandController
             Cache::set($second_user->username . ':' . 'liked-users', $second_liked_users, 3600);
         }
     }
-
-    private function deleteNotificationMessageIfExists()
-    {
-        $notification_message_id = Cache::get($this->data->getUsername() . ':' . 'notification-message-id');
-        if($notification_message_id) {
-            $this->deleteMessage($notification_message_id);
-        }
-    }
 }

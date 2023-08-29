@@ -34,6 +34,16 @@ class DatingNotification extends Command
         $waiting_users = $this->getWaitingUsers($delayed_ids);
 
         foreach ($waiting_users as $waiting_user) {
+            $username = $waiting_user->username;
+            if (Cache::has($username . ':' . 'register-data')) {
+
+                continue;
+            }
+            if (!Cache::has($username . ':' . 'user-data')) {
+
+                continue;
+            }
+
             $relevant_users = $waiting_user->relevantUsersWithFeedbacks()->get();
             if ($relevant_users->isEmpty()) {
                 $this->affectDelayIdCache($waiting_user, $delayed_ids);
@@ -41,7 +51,7 @@ class DatingNotification extends Command
                 continue;
             }
             $relevant_user = $relevant_users->shift();
-            Cache::set($waiting_user->username . ':' . 'relevant-users', $relevant_users);
+            Cache::set($username . ':' . 'relevant-users', $relevant_users);
 
             $this->notify($relevant_user, $waiting_user);
             $this->affectDelayIdCache($waiting_user, $delayed_ids);
@@ -54,11 +64,12 @@ class DatingNotification extends Command
 
     private function notify($relevant_user, $waiting_user)
     {
+        $username = $waiting_user->username;
         $user_ids = $this->matchUserIds($relevant_user, $waiting_user);
         $prefix = $this->matchPrefix($relevant_user);
         $first_user_id = $user_ids['first_user_id'];
         $second_user_id = $user_ids['second_user_id'];
-        $main_message_id = Cache::get($waiting_user->username . ':' . 'main-message-id');
+        $main_message_id = Cache::get($username . ':' . 'main-message-id');
         $chat_id = $waiting_user->chat_id;
 
         $method_name = empty($main_message_id)
@@ -90,21 +101,16 @@ class DatingNotification extends Command
             ])
             ->make();
 
-        if ($response->ok and $method_name == 'sendMessage') {
-            Cache::set($waiting_user->username . ':' . 'main-message-id', $response->result->message_id);
-        }
-        if ($method_name == 'editMessageText') {
-            $response = $telegram_request_service
-                ->setMethodName('sendMessage')
-                ->setParams([
-                    'chat_id' => $chat_id,
-                    'text' => '<strong>Мы подобрали для вас новых людей!</strong>',
-                    'parse_mode' => 'html',
-                ])
-                ->make();
+        $response = $telegram_request_service
+            ->setMethodName('sendMessage')
+            ->setParams([
+                'chat_id' => $chat_id,
+                'text' => '<strong>Мы подобрали для вас новых людей!</strong>',
+                'parse_mode' => 'html',
+            ])
+            ->make();
 
-            Cache::set($waiting_user->username . ':' . 'notification-message-id', $response->result->message_id);
-        }
+        Cache::set($username . ':' . 'notification-message-id', $response->result->message_id);
     }
 
     private function matchUserIds($relevant_user, $waiting_user)
@@ -163,7 +169,7 @@ class DatingNotification extends Command
             : $waiting_users_query->whereNotIn('id', $delayed_ids)->get();
     }
 
-    private function affectDelayIdCache($waiting_user, &$delayed_ids, $ttl = 300)
+    private function affectDelayIdCache($waiting_user, &$delayed_ids, $ttl = 60)
     {
         $delayed_ids[] = $waiting_user->id;
         Cache::tags(['cron-delay'])->put('id', $delayed_ids, $ttl);

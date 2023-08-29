@@ -46,22 +46,10 @@ class ConfirmCallbackController extends CommandController
 
             $register_service->setUserData($user_data);
             $user = $register_service->persist();
-
-            $relevant_users = $user->relevantUsersWithFeedbacks()->get();
             Cache::set($username . ':' . 'user-data', $user);
 
-            if ($relevant_users->isEmpty()) {
-                $this->respondWithPopup($callback_query->id,
-                    'Пока что нет подходящих людей.' .
-                    PHP_EOL .
-                    'Как только найдутся люди с такими же интересами, мы вам сразу сообщим.'
-                );
-
-                return;
-            }
-            $relevant_user = $relevant_users->shift();
-            $user->update(['is_waiting' => false]);
-            Cache::set($username . ':' . 'relevant-users', $relevant_users);
+            $relevant_users = $this->getRelevantUsers($user);
+            $relevant_user = $this->getRelevantUser($user, $relevant_users);
             $message = $this->nextUserIfExists($user, $relevant_user, true);
             if ($message) {
                 Cache::set($username . ':' . 'main-message-id', $message->result->message_id);

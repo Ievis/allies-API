@@ -10,6 +10,11 @@ class StartCommandController extends CommandController
     {
         $username = $this->data->getUsername();
 
+        $main_message_id = Cache::get($username . ':' . 'main-message-id');
+        if($main_message_id) {
+            $this->deleteMessage($main_message_id);
+        }
+
         $this->telegram_request_service
             ->setMethodName('sendMessage')
             ->setParams([
