@@ -38,12 +38,12 @@ class CommandController extends TelegramController
         $callback_query = $this->data->getCallbackQuery();
         $feedbacks = $relevant_user->getRelation('firstUserFeedbacks');
 
-        $first_user_id = $feedbacks->isEmpty()
-            ? $user->id
-            : $relevant_user->id;
-        $second_user_id = $first_user_id === $user->id
-            ? $relevant_user->id
-            : $user->id;
+        $first_username = $feedbacks->isEmpty()
+            ? $user->username
+            : $relevant_user->username;
+        $second_username = $first_username === $user->username
+            ? $relevant_user->username
+            : $user->username;
         $prefix = $feedbacks->isEmpty()
             ? ''
             : '<strong>Вас лайкнули!</strong>' . PHP_EOL;
@@ -74,11 +74,11 @@ class CommandController extends TelegramController
                         [
                             [
                                 'text' => 'Показать',
-                                'callback_data' => 'feedback-1-' . $first_user_id . '-' . $second_user_id . '-' . 0
+                                'callback_data' => 'feedback-1-' . $first_username . '-' . $second_username . '-' . 0
                             ],
                             [
                                 'text' => 'Следующий',
-                                'callback_data' => 'feedback-0-' . $first_user_id . '-' . $second_user_id . '-' . 0
+                                'callback_data' => 'feedback-0-' . $first_username . '-' . $second_username . '-' . 0
                             ]
                         ],
                         [

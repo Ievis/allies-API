@@ -50,6 +50,11 @@ abstract class AbstractTelegramController
         $this->query_parser = new QueryParser($this->callback_queries);
     }
 
+    public function input(string $key)
+    {
+        return $this->callback_query_args[$key];
+    }
+
     private function dieIfEdited()
     {
         if (!empty($this->update_data->edited_message)) {
