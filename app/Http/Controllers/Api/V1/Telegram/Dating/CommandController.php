@@ -7,32 +7,46 @@ use Illuminate\Support\Facades\Log;
 
 class CommandController extends TelegramController
 {
-    public function getRelevantUsers($user)
+    public UserData $user_data;
+
+    public function userData(array $user_data = []): UserData
     {
-        $relevant_users = Cache::get($user->username . ':' . 'relevant-users');
-        if (collect($relevant_users)->isEmpty()) {
+        $this->user_data = new UserData($this->data->getUsername(), $user_data);
+
+        return $this->user_data;
+    }
+
+    private function getRelevantUsers()
+    {
+        $user = $this->user_data->get('user');
+        $relevant_users = $this->user_data->get('relevant_users');
+
+        if ($relevant_users->isEmpty()) {
             $relevant_users = $user->relevantUsersWithFeedbacks()->get();
+            $this->user_data->set('relevant_users', $relevant_users);
         }
 
         return $relevant_users;
     }
 
-    public function getRelevantUser($user, $relevant_users, $after_liked_users = false)
+    public function getRelevantUser($after_liked_users = false)
     {
+        $relevant_users = $this->getRelevantUsers();
+
         $relevant_user = $after_liked_users
             ? $relevant_users->first()
             : $relevant_users->shift();
         if (!$after_liked_users) {
-            Cache::set($user->username . ':' . 'relevant-users', $relevant_users);
-            Cache::set($user->username . ':' . 'current-user', $relevant_user);
+            $this->user_data->set('relevant_users', $relevant_users);
+            $this->user_data->set('current_user', $relevant_user);
 
             return $relevant_user;
         }
 
-        return Cache::get($user->username . ':' . 'current-user');
+        return $this->user_data->get('current_user');
     }
 
-    public function nextUser($user, $relevant_user, $after_register = false)
+    private function nextUser($user, $relevant_user, $after_register = false)
     {
         $chat_id = $this->data->getChatId();
         $callback_query = $this->data->getCallbackQuery();
@@ -94,9 +108,9 @@ class CommandController extends TelegramController
             ->make();
     }
 
-    public function nextUserIfExists($user, $relevant_user, $after_register = false)
+    public function nextUserIfExists($relevant_user, $after_register = false)
     {
-        $callback_query = $this->data->getCallbackQuery();
+        $user = $this->user_data->get('user');
 
         if (!empty($relevant_user)) {
             if ($user->is_waiting) {
@@ -107,7 +121,7 @@ class CommandController extends TelegramController
             return $this->nextUser($user, $relevant_user, $after_register);
         }
 
-        $this->showLikesButton($user, $callback_query);
+        $this->showLikesButton();
         if (!$user->is_waiting) {
             $user->is_waiting = true;
             $user->save();
@@ -116,10 +130,12 @@ class CommandController extends TelegramController
         return false;
     }
 
-    protected function showLikesButton($user, $callback_query)
+    protected function showLikesButton()
     {
+        $main_message_id = $this->user_data->get('main_message_id');
+
         $chat_id = $this->data->getChatId();
-        $main_message_id = Cache::get($user->username . ':' . 'main-message-id');
+        $callback_query = $this->data->getCallbackQuery();
         $method_name = empty($main_message_id)
             ? 'sendMessage'
             : 'editMessageText';
@@ -145,7 +161,7 @@ class CommandController extends TelegramController
             ->make();
 
         if ($response->ok and $method_name == 'sendMessage') {
-            Cache::set($user->username . ':' . 'main-message-id', $response->result->message_id);
+            $this->user_data->set('main_message_id', $response->result->message_id);
         }
     }
 
@@ -196,12 +212,12 @@ class CommandController extends TelegramController
 
     protected function getLikedUsersIfExist($user)
     {
-        $username = $this->data->getUsername();
+        $liked_users = $this->user_data->get('liked_users');
+
         $callback_query = $this->data->getCallbackQuery();
-        $liked_users = Cache::get($username . ':' . 'liked-users');
         if (empty($liked_users)) {
             $liked_users = $user->likedUsers()->get();
-            Cache::set($username . ':' . 'liked-users', $liked_users, 3600);
+            $this->user_data->set('liked_users', $liked_users);
         }
 
         if ($liked_users->isEmpty()) {
@@ -271,7 +287,7 @@ class CommandController extends TelegramController
 
     protected function deleteNotificationMessageIfExists()
     {
-        $notification_message_id = Cache::get($this->data->getUsername() . ':' . 'notification-message-id');
+        $notification_message_id = $this->user_data->get('notification_message_id');
         if ($notification_message_id) {
             $this->deleteMessage($notification_message_id);
         }

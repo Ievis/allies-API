@@ -46,15 +46,18 @@ class ConfirmCallbackController extends CommandController
 
             $register_service->setUserData($user_data);
             $user = $register_service->persist();
-            Cache::set($username . ':' . 'user-data', $user);
 
-            $relevant_users = $this->getRelevantUsers($user);
-            $relevant_user = $this->getRelevantUser($user, $relevant_users);
-            $message = $this->nextUserIfExists($user, $relevant_user, true);
+            $user_data = $this->userData([
+                'user' => $user
+            ]);
+            $relevant_user = $this->getRelevantUser();
+
+            $message = $this->nextUserIfExists($relevant_user, true);
             if ($message) {
-                Cache::set($username . ':' . 'main-message-id', $message->result->message_id);
+                $user_data->set('main_message_id', $message->result->message_id);
             }
 
+            $user_data->save();
             return;
         }
 
