@@ -8,10 +8,11 @@ class StartCommandController extends CommandController
 {
     public function __invoke()
     {
+        $user_data = $this->userData();
         $username = $this->data->getUsername();
 
-        $main_message_id = Cache::get($username . ':' . 'main-message-id');
-        if($main_message_id) {
+        $main_message_id = $user_data->get('main_message_id');
+        if ($main_message_id) {
             $this->deleteMessage($main_message_id);
         }
 
@@ -24,7 +25,7 @@ class StartCommandController extends CommandController
             ])
             ->make();
 
-        $user_data = [
+        $fields = [
             'name' => [
                 'is_completed' => false,
                 'is_pending' => false,
@@ -55,15 +56,15 @@ class StartCommandController extends CommandController
             ],
         ];
 
-        Cache::forget($username . ':' . 'reset-bot-message-id');
-        Cache::forget($username . ':' . 'summary-message-id');
-        Cache::set($username . ':' . 'register-data', $user_data, 60 * 60);
-
         $register_service = new RegisterService();
         $register_service->setTelegramUserData($this->data);
         $register_service->setCallbackArgs($this->callback_query_args);
 
-        $register_service->setUserData($user_data);
+        $register_data = new RegisterData($username, [
+            'fields' => $fields
+        ]);
+        $register_data->save();
+        $register_service->setRegisterData($register_data);
         $register_service->proceed();
 
     }

@@ -33,14 +33,15 @@ class UserData
 
     public function save(): bool
     {
-        Cache::set($this->user->username . ':' . 'user-data', collect([
+        $user_data = collect([
             'user' => $this->user,
             'liked_users' => $this->liked_users,
             'relevant_users' => $this->relevant_users,
             'current_user' => $this->current_user,
             'main_message_id' => $this->main_message_id,
             'notification_message_id' => $this->notification_message_id
-        ]));
+        ]);
+        Cache::set($this->user->username . ':' . 'user-data', $user_data);
 
         return true;
     }
@@ -69,5 +70,10 @@ class UserData
     public function exists(string $key): bool
     {
         return collect($this->{$key})->isNotEmpty();
+    }
+
+    public function flush(): bool
+    {
+        return Cache::forget($this->user->username . ':' . 'user-data');
     }
 }

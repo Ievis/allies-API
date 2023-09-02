@@ -10,14 +10,14 @@ class ErrorCommandController extends CommandController
     public function __invoke()
     {
         $username = $this->data->getUsername();
-        $user_data = Cache::get($username . ':' . 'register-data');
+        $register_data = new RegisterData($username);
 
-        if ($user_data) {
+        if ($register_data->exists()) {
             $register_service = new RegisterService();
             $register_service->setTelegramUserData($this->data);
             $register_service->setCallbackArgs($this->callback_query_args);
 
-            $register_service->setUserData($user_data);
+            $register_service->setRegisterData($register_data);
             $register_service->proceed();
         } else {
             $this->respondWithMessage('Неверная команда!');

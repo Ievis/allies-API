@@ -8,17 +8,16 @@ class RegisterCallbackController extends CommandController
 {
     public function __invoke()
     {
+        $username = $this->data->getUsername();
         $callback_query = $this->data->getCallbackQuery();
         $this->deleteMessage($callback_query->message->message_id);
-
-        $username = $this->data->getUsername();
-        $user_data = Cache::get($username . ':' . 'register-data');
 
         $register_service = new RegisterService();
         $register_service->setTelegramUserData($this->data);
         $register_service->setCallbackArgs($this->callback_query_args);
 
-        $register_service->setUserData($user_data);
+        $register_data = new RegisterData($username);
+        $register_service->setRegisterData($register_data);
         $register_service->proceed();
     }
 }

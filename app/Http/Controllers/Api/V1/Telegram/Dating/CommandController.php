@@ -2,9 +2,6 @@
 
 namespace App\Http\Controllers\Api\V1\Telegram\Dating;
 
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
-
 class CommandController extends TelegramController
 {
     public UserData $user_data;
@@ -44,6 +41,28 @@ class CommandController extends TelegramController
         }
 
         return $this->user_data->get('current_user');
+    }
+
+    public function nextUserIfExists($relevant_user, $after_register = false)
+    {
+        $user = $this->user_data->get('user');
+
+        if (!empty($relevant_user)) {
+            if ($user->is_waiting) {
+                $user->is_waiting = false;
+                $user->save();
+            }
+
+            return $this->nextUser($user, $relevant_user, $after_register);
+        }
+
+        $this->showLikesButton();
+        if (!$user->is_waiting) {
+            $user->is_waiting = true;
+            $user->save();
+        }
+
+        return false;
     }
 
     private function nextUser($user, $relevant_user, $after_register = false)
@@ -106,28 +125,6 @@ class CommandController extends TelegramController
                 'parse_mode' => 'html',
             ])
             ->make();
-    }
-
-    public function nextUserIfExists($relevant_user, $after_register = false)
-    {
-        $user = $this->user_data->get('user');
-
-        if (!empty($relevant_user)) {
-            if ($user->is_waiting) {
-                $user->is_waiting = false;
-                $user->save();
-            }
-
-            return $this->nextUser($user, $relevant_user, $after_register);
-        }
-
-        $this->showLikesButton();
-        if (!$user->is_waiting) {
-            $user->is_waiting = true;
-            $user->save();
-        }
-
-        return false;
     }
 
     protected function showLikesButton()

@@ -52,7 +52,7 @@ abstract class AbstractTelegramController
 
     public function input(string $key)
     {
-        return $this->callback_query_args[$key];
+        return $this->callback_query_args[$key] ?? null;
     }
 
     private function dieIfEdited()

@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Cache;
 
 class RegisterService extends CommandController
 {
-    private array $user_data;
+    private RegisterData $register_data;
     private array $attribute_messages = [
         'subject' => [
             'error' => 'Выберите один из предложенных предметов!',
@@ -19,26 +19,30 @@ class RegisterService extends CommandController
         ],
     ];
 
-    public function setUserData(?array $user_data)
+    public function setRegisterData(?RegisterData $register_data)
     {
-        if (empty($user_data)) {
-            $this->respondWithMessage('<strong>Время жизни ваших данных до заполнения всей информации - 1 час. Попробуйте указать их ещё раз.</strong>');
+        if (empty($register_data)) {
+            $this->respondWithMessage('<strong>Попробуйте зарегистрироваться ещё раз</strong>');
 
             die();
         }
-        $this->user_data = $user_data;
+
+        $this->register_data = $register_data;
     }
 
     public function proceed()
     {
-        foreach ($this->user_data as $field_name => $field_data) {
+        $fields = $this->register_data->get('fields');
+        $summary_message_id = $this->register_data->get('summary_message_id');
+        $reset_bot_message_id = $this->register_data->get('reset_bot_message_id');
+
+        foreach ($fields as $field_name => $field_data) {
             if ($field_data['is_completed']) continue;
 
             if ($field_data['is_pending']) {
-                $username = $this->data->getUsername();
                 $message = $this->data->getMessage();
-                $attribute_name = $this->callback_query_args['attribute'] ?? null;
-                $value = $message->text ?? $this->callback_query_args['value'];
+                $attribute_name = $this->input('attribute') ?? null;
+                $value = $message->text ?? $this->input('value');
 
                 if ($field_data['type'] === 'callback') {
                     if (!empty($message) or $field_name !== $attribute_name) {
@@ -46,65 +50,24 @@ class RegisterService extends CommandController
 
                         return;
                     }
-                    if (!Cache::has($username . ':' . 'reset-bot-message-id')) {
+                    if (empty($reset_bot_message_id)) {
                         $this->respondWithMessage($this->getAttributeMessage($field_name, 'info') . $value);
                     }
                 }
 
-                $this->user_data[$field_name]['is_pending'] = false;
-                $this->user_data[$field_name]['is_completed'] = true;
-                $this->user_data[$field_name]['value'] = $value;
-
-                Cache::set($username . ':' . 'register-data', $this->user_data, 60 * 60);
-
-                $summary_message_id = Cache::get($username . ':' . 'summary-message-id');
-                $reset_bot_message_id = Cache::get($username . ':' . 'reset-bot-message-id');
-                if ($reset_bot_message_id) {
-                    Cache::forget($username . ':' . 'reset-bot-message-id');
+                $this->setField($field_name, $value);
+                if ($summary_message_id) {
                     $this->deleteMessage($this->data->getMessage()->message_id ?? $this->data->getCallbackQuery()->message->message_id);
                     $this->deleteMessage($reset_bot_message_id);
-                }
-                if ($summary_message_id) {
-                    Cache::forget($username . ':' . 'summary-message-id');
-                    $this->telegram_request_service
-                        ->setMethodName('editMessageText')
-                        ->setParams([
-                                'chat_id' => $this->data->getChatId(),
-                                'message_id' => $summary_message_id,
-                                'text' => '<strong>Ваши данные:</strong>' .
-                                    PHP_EOL .
-                                    'Имя: ' . $this->user_data['name']['value'] .
-                                    PHP_EOL .
-                                    'Предмет: ' . $this->user_data['subject']['value'] .
-                                    PHP_EOL .
-                                    'Категория: ' . $this->user_data['category']['value'] .
-                                    PHP_EOL .
-                                    PHP_EOL .
-                                    'О себе: ' . $this->user_data['about']['value'] .
-                                    PHP_EOL .
-                                    PHP_EOL .
-                                    '<strong>Всё верно?</strong>',
-                                'reply_markup' => json_encode([
-                                    'inline_keyboard' => [
-                                        [
-                                            [
-                                                'text' => 'Да',
-                                                'callback_data' => 'confirm-1'
-                                            ],
-                                            [
-                                                'text' => 'Нет',
-                                                'callback_data' => 'confirm-0'
-                                            ]
-                                        ]
-                                    ]
-                                ]),
-                                'parse_mode' => 'html',
-                            ]
-                        )
-                        ->make();
+                    $this->editSummaryMessage($summary_message_id);
 
+                    $this->register_data->delete('summary_message_id');
+                    $this->register_data->delete('reset_bot_message_id');
+                    $this->register_data->save();
                     return;
                 }
+
+                $this->register_data->save();
                 continue;
             }
 
@@ -115,8 +78,61 @@ class RegisterService extends CommandController
         $this->confirm();
     }
 
+    private function editSummaryMessage($summary_message_id)
+    {
+        $fields = $this->register_data->get('fields');
+        $this->telegram_request_service
+            ->setMethodName('editMessageText')
+            ->setParams([
+                    'chat_id' => $this->data->getChatId(),
+                    'message_id' => $summary_message_id,
+                    'text' => '<strong>Ваши данные:</strong>' .
+                        PHP_EOL .
+                        'Имя: ' . $fields['name']['value'] .
+                        PHP_EOL .
+                        'Предмет: ' . $fields['subject']['value'] .
+                        PHP_EOL .
+                        'Категория: ' . $fields['category']['value'] .
+                        PHP_EOL .
+                        PHP_EOL .
+                        'О себе: ' . $fields['about']['value'] .
+                        PHP_EOL .
+                        PHP_EOL .
+                        '<strong>Всё верно?</strong>',
+                    'reply_markup' => json_encode([
+                        'inline_keyboard' => [
+                            [
+                                [
+                                    'text' => 'Да',
+                                    'callback_data' => 'confirm-1'
+                                ],
+                                [
+                                    'text' => 'Нет',
+                                    'callback_data' => 'confirm-0'
+                                ]
+                            ]
+                        ]
+                    ]),
+                    'parse_mode' => 'html',
+                ]
+            )
+            ->make();
+    }
+
+    private function setField($field_name, $value)
+    {
+        $fields = $this->register_data->get('fields');
+
+        $fields[$field_name]['is_pending'] = false;
+        $fields[$field_name]['is_completed'] = true;
+        $fields[$field_name]['value'] = $value;
+        $this->register_data->set('fields', $fields);
+    }
+
     public function confirm()
     {
+        $fields = $this->register_data->get('fields');
+
         $chat_id = $this->data->getChatId();
         $this->telegram_request_service
             ->setMethodName('sendMessage')
@@ -124,11 +140,11 @@ class RegisterService extends CommandController
                 'chat_id' => $chat_id,
                 'text' => '<strong>Ваши данные:</strong>' .
                     PHP_EOL .
-                    'Имя: ' . $this->user_data['name']['value'] .
+                    'Имя: ' . $fields['name']['value'] .
                     PHP_EOL .
-                    'Предмет: ' . $this->user_data['subject']['value'] .
+                    'Предмет: ' . $fields['subject']['value'] .
                     PHP_EOL .
-                    'Категория: ' . $this->user_data['category']['value'] .
+                    'Категория: ' . $fields['category']['value'] .
                     PHP_EOL .
                     PHP_EOL .
                     '<strong>Всё верно?</strong>',
@@ -151,23 +167,15 @@ class RegisterService extends CommandController
             ->make();
     }
 
-    private function forgetUserCacheData($username)
-    {
-        Cache::forget($username . ':' . 'register-data');
-        Cache::forget($username . ':' . 'liked-users');
-        Cache::forget($username . ':' . 'current-user');
-        Cache::forget($username . ':' . 'relevant-users');
-        Cache::forget($username . ':' . 'main-message-id');
-    }
-
     public function persist()
     {
         $username = $this->data->getUsername();
         $chat_id = $this->data->getChatId();
-        $name = $this->user_data['name']['value'];
-        $subject = $this->user_data['subject']['value'];
-        $category = $this->user_data['category']['value'];
-        $about = $this->user_data['about']['value'];
+        $fields = $this->register_data->get('fields');
+        $name = $fields['name']['value'];
+        $subject = $fields['subject']['value'];
+        $category = $fields['category']['value'];
+        $about = $fields['about']['value'];
 
         $user = TelegramDatingUser::updateOrCreate([
             'username' => $username
@@ -178,7 +186,7 @@ class RegisterService extends CommandController
             'category' => $category,
             'about' => $about
         ]);
-        $this->forgetUserCacheData($username);
+        $this->register_data->flush();
 
         $this->respondWithMessage(' <strong>Отлично!</strong> ' . PHP_EOL . 'Ваши данные сохранены. Мы вам сообщим, когда найдём учеников со схожими интересами.');
 
@@ -190,12 +198,22 @@ class RegisterService extends CommandController
         return $this->attribute_messages[$attribute_name][$message_type];
     }
 
-    private function setPendingStatus(string $field)
+    private function setPendingStatus(string $attribute)
     {
-        $username = $this->data->getUsername();
-        $this->user_data[$field]['is_pending'] = true;
+        $fields = $this->register_data->get('fields');
+        $fields[$attribute]['is_pending'] = true;
+        $this->register_data->set('fields', $fields);
 
-        Cache::set($username . ':' . 'register-data', $this->user_data, 60 * 60);
+        $this->register_data->save();
+    }
+
+    private function checkForResetMessage($message_id)
+    {
+        $summary_message_id = $this->register_data->get('summary_message_id');
+        if ($summary_message_id) {
+            $this->register_data->set('reset_bot_message_id', $message_id);
+            $this->register_data->save();
+        }
     }
 
     public function name()
@@ -204,11 +222,7 @@ class RegisterService extends CommandController
 
         $response = $this->respondWithMessage('Введите имя');
         $message_id = $response->result->message_id;
-
-        $username = $this->data->getUsername();
-        if (Cache::has($username . ':' . 'summary-message-id')) {
-            Cache::set($username . ':' . 'reset-bot-message-id', $message_id);
-        }
+        $this->checkForResetMessage($message_id);
     }
 
     public function about()
@@ -217,11 +231,7 @@ class RegisterService extends CommandController
 
         $response = $this->respondWithMessage('Напишите о себе');
         $message_id = $response->result->message_id;
-
-        $username = $this->data->getUsername();
-        if (Cache::has($username . ':' . 'summary-message-id')) {
-            Cache::set($username . ':' . 'reset-bot-message-id', $message_id);
-        }
+        $this->checkForResetMessage($message_id);
     }
 
     public function subject()
@@ -263,11 +273,7 @@ class RegisterService extends CommandController
             ->make();
 
         $message_id = $response->result->message_id;
-
-        $username = $this->data->getUsername();
-        if (Cache::has($username . ':' . 'summary-message-id')) {
-            Cache::set($username . ':' . 'reset-bot-message-id', $message_id);
-        }
+        $this->checkForResetMessage($message_id);
     }
 
     public function category()
@@ -309,10 +315,6 @@ class RegisterService extends CommandController
             ->make();
 
         $message_id = $response->result->message_id;
-
-        $username = $this->data->getUsername();
-        if (Cache::has($username . ':' . 'summary-message-id')) {
-            Cache::set($username . ':' . 'reset-bot-message-id', $message_id);
-        }
+        $this->checkForResetMessage($message_id);
     }
 }
