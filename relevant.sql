@@ -1,25 +1,6 @@
-(select * from `telegram_dating_users`
-where `id` != $id
-and `subject` = $subject
-and `category` = $category
-and exists (select * from `telegram_dating_feedback`
-where `telegram_dating_users`.`id` = `telegram_dating_feedback`.`first_user_id`
-and `first_user_reaction` = true
-and `second_user_id` = $id
-and `subject` = $subject
-and `category` = $category
-and `is_resolved` = false))
-union (select * from `telegram_dating_users`
-where `id` != $id and `subject` = $subject
-and `category` = $category
-and not exists (select * from `telegram_dating_feedback`
-where `telegram_dating_users`.`id` = `telegram_dating_feedback`.`first_user_id`
-and `second_user_id` = $id
-and `subject` = $subject
-and `category` = $category)
-and not exists (select * from `telegram_dating_feedback`
-where `telegram_dating_users`.`id` = `telegram_dating_feedback`.`second_user_id`
-and `first_user_id` = $id
-and `subject` = $subject
-and `category` = $category))
-limit 5
+(select * from `telegram_dating_users` where `id` != ? and `subject` = ? and `category` = ? and exists (select * from `telegram_dating_feedback` where `telegram_datin
+g_users`.`id` = `telegram_dating_feedback`.`first_user_id` and `first_user_reaction` = ? and `second_user_id` = ? and `subject` = ? and `category` = ? and `is_resolved
+` = ?) or `id` in (?, ?, ?, ?, ?)) union (select * from `telegram_dating_users` where `id` != ? and `subject` = ? and `category` = ? and `id` not in (?, ?, ?, ?, ?, ?,
+                                                                                                                                                      ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) and not exists (select * from `telegram_dating_feedback` where `telegram_dating_users`.`id` = `telegram_dating_feedback`.`first_user_
+id` and `second_user_id` = ? and `subject` = ? and `category` = ?) and not exists (select * from `telegram_dating_feedback` where `telegram_dating_users`.`id` = `teleg
+ram_dating_feedback`.`second_user_id` and `first_user_id` = ? and `subject` = ? and `category` = ?)) limit 5

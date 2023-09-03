@@ -22,7 +22,7 @@ class TelegramDatingUserFactory extends Factory
             'subject' => Subject::inRandomOrder()->first()->name,
             'category' => Category::inRandomOrder()->first()->name,
             'name' => fake()->word,
-            'username' => fake()->word,
+            'username' => fake()->unique()->name,
             'chat_id' => '0000000000',
             'about' => fake()->paragraph(rand(1, 5))
         ];

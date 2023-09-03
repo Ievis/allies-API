@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class TelegramDatingUser extends Model
@@ -33,6 +34,26 @@ class TelegramDatingUser extends Model
 
     public function relevantUsersWithFeedbacks()
     {
+        $cached_feedbacks = collect(Cache::tags(['feedbacks'])->get('all'));
+        $liked_feedbacks = $cached_feedbacks->where('first_user_reaction', true)
+            ->where('second_user_id', $this->id)
+            ->where('subject', $this->subject)
+            ->where('category', $this->category)
+            ->where('is_resolved', false)
+            ->values();
+        $first_excluded_ids = $cached_feedbacks->where('first_user_id', $this->id)
+            ->where('subject', $this->subject)
+            ->where('category', $this->category)
+            ->pluck('second_user_id')
+            ->toArray();
+        $second_excluded_ids = $cached_feedbacks->where('second_user_id', $this->id)
+            ->where('subject', $this->subject)
+            ->where('category', $this->category)
+            ->pluck('first_user_id')
+            ->toArray();
+        $excluded_ids = array_merge($first_excluded_ids, $second_excluded_ids);
+        $included_ids = $liked_feedbacks->pluck('first_user_id')->toArray();
+
         $relevant_liked_users = $this
             ->relevantUsers()
             ->whereHas('firstUserFeedbacks', function ($query) {
@@ -42,6 +63,7 @@ class TelegramDatingUser extends Model
                     ->where('category', $this->category)
                     ->where('is_resolved', false);
             })
+            ->orWhereIn('id', $included_ids)
             ->with(['firstUserFeedbacks' => function ($query) {
                 return $query->where('first_user_reaction', true)
                     ->where('second_user_id', $this->id)
@@ -52,6 +74,7 @@ class TelegramDatingUser extends Model
 
         $relevant_unliked_users = $this
             ->relevantUsers()
+            ->whereNotIn('id', $excluded_ids)
             ->whereDoesntHave('firstUserFeedbacks', function ($query) {
                 return $query->where('second_user_id', $this->id)
                     ->where('subject', $this->subject)
@@ -65,7 +88,16 @@ class TelegramDatingUser extends Model
 
         return $relevant_liked_users
             ->union($relevant_unliked_users)
-            ->limit(5);
+            ->limit(5)
+            ->get()
+            ->map(function ($user) use ($liked_feedbacks, $included_ids) {
+                if (in_array($user->id, $included_ids)) {
+                    $liked_feedback = $liked_feedbacks->where('first_user_id', $user->id)->first();
+                    $user->setRelation('firstUserFeedbacks', collect([$liked_feedback]));
+                }
+
+                return $user;
+            });
     }
 
     public function likedUsers()

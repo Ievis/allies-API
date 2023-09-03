@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\TelegramDatingFeedback;
 use App\Models\TelegramDatingUser;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
@@ -28,7 +29,12 @@ class FeedbacksUpsert extends Command
      */
     public function handle()
     {
-        $feedbacks = Cache::tags(['feedbacks'])->get('all')->uniquie();
-        DB::table('telegram_dating_feedback')->upsert($feedbacks, ['first_user_id', 'second_user_id'], ['first_user_reaction', 'second_user_reaction', 'is_resolved']);
+        $feedbacks = Cache::tags(['feedbacks'])->get('all')->unique()->values() ?? collect();
+        dd($feedbacks);
+        TelegramDatingFeedback::upsert(
+            $feedbacks->toArray(),
+            ['first_user_id', 'second_user_id', 'subject', 'category'],
+            ['first_user_reaction', 'second_user_reaction', 'is_resolved']
+        );
     }
 }

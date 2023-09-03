@@ -49,7 +49,7 @@ class ConfirmCallbackController extends CommandController
             $register_service->setRegisterData($register_data);
             $user = $register_service->persist();
 
-            $user_data = $this->userData([
+            $user_data = $this->setUserData([
                 'user' => $user
             ]);
             $relevant_user = $this->getRelevantUser();

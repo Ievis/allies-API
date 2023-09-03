@@ -19,7 +19,7 @@ class RegisterData
         $register_data = collect($register_data);
 
         $this->username = $username;
-        $this->fields = $register_data->get('fields');
+        $this->fields = $register_data->get('fields', []);
         $this->summary_message_id = $register_data->get('summary_message_id');
         $this->reset_bot_message_id = $register_data->get('reset_bot_message_id');
     }

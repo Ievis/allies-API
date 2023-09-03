@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1\Telegram\Dating;
 
+use Illuminate\Support\Facades\Log;
+
 class CommandController extends TelegramController
 {
     public UserData $user_data;
 
-    public function userData(array $user_data = []): UserData
+    public function setUserData(array $user_data = []): UserData
     {
         $this->user_data = new UserData($this->data->getUsername(), $user_data);
 
@@ -19,7 +21,7 @@ class CommandController extends TelegramController
         $relevant_users = $this->user_data->get('relevant_users');
 
         if ($relevant_users->isEmpty()) {
-            $relevant_users = $user->relevantUsersWithFeedbacks()->get();
+            $relevant_users = $user->relevantUsersWithFeedbacks();
             $this->user_data->set('relevant_users', $relevant_users);
         }
 
@@ -107,11 +109,11 @@ class CommandController extends TelegramController
                         [
                             [
                                 'text' => 'Показать',
-                                'callback_data' => 'feedback-1-' . $first_username . '-' . $second_username . '-' . 0
+                                'callback_data' => 'feedback-1-' . $first_username . '-' . $second_username
                             ],
                             [
                                 'text' => 'Следующий',
-                                'callback_data' => 'feedback-0-' . $first_username . '-' . $second_username . '-' . 0
+                                'callback_data' => 'feedback-0-' . $first_username . '-' . $second_username
                             ]
                         ],
                         [
@@ -160,6 +162,52 @@ class CommandController extends TelegramController
         if ($response->ok and $method_name == 'sendMessage') {
             $this->user_data->set('main_message_id', $response->result->message_id);
         }
+    }
+
+    protected function revealUser()
+    {
+        $user = $this->user_data->get('user');
+        $current_user = $this->user_data->get('current_user');
+
+        $chat_id = $this->data->getChatId();
+        $callback_query = $this->data->getCallbackQuery();
+        $this->telegram_request_service
+            ->setMethodName('editMessageText')
+            ->setParams([
+                'chat_id' => $chat_id,
+                'message_id' => $callback_query->message->message_id,
+                'text' => 'Ник в telegram: ' .
+                    '@' .
+                    $current_user->username .
+                    PHP_EOL .
+                    'Имя: ' .
+                    $current_user->name .
+                    PHP_EOL .
+                    'Предмет: ' .
+                    $current_user->subject .
+                    PHP_EOL .
+                    'Категория: ' .
+                    $current_user->category .
+                    PHP_EOL .
+                    PHP_EOL .
+                    'О себе: ' .
+                    $current_user->about,
+                'reply_markup' => json_encode([
+                    'inline_keyboard' => [
+                        [
+                            [
+                                'text' => 'Слелующий',
+                                'callback_data' => 'feedback-1' . '-' . $current_user->username . '-' . $user->username
+                            ]
+                        ]
+                    ]
+                ]),
+                'parse_mode' => 'html',
+            ])
+            ->make();
+
+        $current_user->is_revealed = true;
+        $this->user_data->set('current_user', $current_user);
     }
 
     protected function displayLikedUserWithPagination($liked_user, $enumerated_buttons, $pagination_buttons)
@@ -287,6 +335,8 @@ class CommandController extends TelegramController
         $notification_message_id = $this->user_data->get('notification_message_id');
         if ($notification_message_id) {
             $this->deleteMessage($notification_message_id);
+
+            $this->user_data->set('notification_message_id', null);
         }
     }
 }

@@ -8,7 +8,7 @@ class StartCommandController extends CommandController
 {
     public function __invoke()
     {
-        $user_data = $this->userData();
+        $user_data = $this->setUserData();
         $username = $this->data->getUsername();
 
         $main_message_id = $user_data->get('main_message_id');

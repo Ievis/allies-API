@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\TelegramDatingUser;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 
 class TestQuery extends Command
 {
@@ -26,8 +27,32 @@ class TestQuery extends Command
      */
     public function handle()
     {
-        $user = TelegramDatingUser::first();
-        $relevant_users = $user->relevantUsersWithFeedbacks()->get();
-        dd($relevant_users);
+        $user = TelegramDatingUser::query()
+            ->where('username', 'levchaba')
+            ->first();
+
+        $relevant_users = $user->relevantUsersWithFeedbacks();
+
+        $cached_feedbacks = collect(Cache::tags(['feedbacks'])->get('all'));
+        $liked_feedbacks = $cached_feedbacks->where('first_user_reaction', true)
+            ->where('second_user_id', $user->id)
+            ->where('subject', $user->subject)
+            ->where('category', $user->category)
+            ->where('is_resolved', false)
+            ->values();
+        $first_excluded_ids = $cached_feedbacks->where('first_user_id', $user->id)
+            ->where('subject', $user->subject)
+            ->where('category', $user->category)
+            ->pluck('second_user_id')
+            ->toArray();
+        $second_excluded_ids = $cached_feedbacks->where('second_user_id', $user->id)
+            ->where('subject', $user->subject)
+            ->where('category', $user->category)
+            ->pluck('first_user_id')
+            ->toArray();
+        $excluded_ids = array_merge($first_excluded_ids, $second_excluded_ids);
+        $included_user_ids = $liked_feedbacks->pluck('first_user_id')->toArray();
+
+        dd($relevant_users, $included_user_ids);
     }
 }

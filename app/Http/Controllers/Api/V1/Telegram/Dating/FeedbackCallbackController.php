@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Telegram\Dating;
 
 use App\Models\TelegramDatingFeedback;
 use App\Models\TelegramDatingUser;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 class FeedbackCallbackController extends CommandController
@@ -12,29 +13,74 @@ class FeedbackCallbackController extends CommandController
     private TelegramDatingUser $showed_user;
     private TelegramDatingUser $first_user;
     private TelegramDatingUser $second_user;
+    private UserData $showed_user_data;
     private string $first_username;
     private string $second_username;
     private bool $decision;
+    private bool $is_matched;
     private array $feedback;
-    private array $feedbacks;
+    private Collection $feedbacks;
     private bool $is_feedbacks_affectable = true;
 
-    private function setUser()
+    public function __invoke()
     {
-        $username = $this->data->getUsername();
-        $this->user = Cache::get($username . ':' . 'user-data');
+//        die();
+        $this->setUserData();
+        $this->deleteNotificationMessageIfExists();
+        $decision = $this->input('decision');
+        $first_username = $this->input('first_username');
+        $second_username = $this->input('second_username');
+        $this->setUsernames($first_username, $second_username);
+        $this->setDecision($decision);
+
+        $this->setShowedUserData();
+        $this->setFirstUser();
+        $this->setSecondUser();
+
+        $this->setFeedbacks();
+        $this->setFeedback();
+
+        if (!$this->validateFeedback() or !$this->validateInstantFeedback() or $this->isRevealed()) {
+            $relevant_user = $this->getRelevantUser();
+            $this->nextUserIfExists($relevant_user);
+            $this->user_data->save();
+
+            return;
+        }
+
+        $this->affectFeedbacksCache();
+        $this->affectShowedUserCache();
+        $this->affectLikedUsersCache();
+
+        if ($this->is_matched) {
+            $this->revealUser();
+            $this->user_data->save();
+            $this->showed_user_data->save();
+
+            return;
+        }
+
+        $relevant_user = $this->getRelevantUser();
+        $this->nextUserIfExists($relevant_user);
+        $this->user_data->save();
+        $this->showed_user_data->save();
     }
 
-    private function setShowedUser()
+    private function setShowedUserData()
     {
-        return $this->first_username == $this->user->username
-            ? $this->user
-            : Cache::get($this->second_username . ':' . 'user-data');
+        $user = $this->user_data->get('user');
+        $this->user = $user;
+        $username = $this->first_username == $user->username
+            ? $this->second_username
+            : $this->first_username;
+
+        $this->showed_user_data = new UserData($username);
+        $this->showed_user = $this->showed_user_data->get('user');
     }
 
     private function setFeedbacks()
     {
-        $this->feedbacks = Cache::tags(['feedbacks'])->get('all');
+        $this->feedbacks = Cache::tags(['feedbacks'])->get('all') ?? collect();
     }
 
     private function setUsernames($first_username, $second_username)
@@ -78,11 +124,18 @@ class FeedbackCallbackController extends CommandController
 
     private function isResolved()
     {
-        $first_user_reaction = $this->getFirstUserReaction();
         $second_user_reaction = $this->getSecondUserReaction();
 
-        return $first_user_reaction == true and $second_user_reaction == true
-            or $first_user_reaction == false;
+        $this->is_matched = $second_user_reaction;
+        return $this->is_matched or !$this->decision;
+    }
+
+    private function isRevealed()
+    {
+        $current_user = $this->user_data->get('current_user');
+        $is_revealed = $current_user->is_revealed ?? null;
+
+        return !is_null($is_revealed);
     }
 
     private function setFeedback()
@@ -96,207 +149,84 @@ class FeedbackCallbackController extends CommandController
             'category' => $this->user->category,
             'is_resolved' => $this->isResolved(),
         ];
-
-        $this->checkFeedbacksForCurrentUser();
     }
 
     private function validateFeedback()
     {
-        return in_array($this->feedback, $this->feedbacks);
+        return !$this->feedbacks->contains($this->feedbacks);
+    }
+
+    private function validateInstantFeedback(): bool
+    {
+        $current_user = $this->user_data->get('current_user');
+        $instant_feedback = $current_user->instant_feedback ?? null;
+
+        return is_null($instant_feedback) or !$instant_feedback->is_resolved;
     }
 
     private function affectShowedUserCache()
     {
-        $showed_relevant_users = Cache::get($this->showed_user->username . ':' . 'relevant-users');
+        $showed_relevant_users = $this->showed_user_data->get('relevant_users');
+        $showed_current_user = $this->showed_user_data->get('current_user');
+
         if ($showed_relevant_users->contains($this->user)) {
-            if ($this->isResolved()) {
+            if (!$this->getFirstUserReaction()) {
                 $showed_relevant_users->reject(function ($user) {
                     return $user == $this->user->id;
                 });
-                Cache::set($this->showed_user->username . ':' . 'relevant-users', $showed_relevant_users);
+                $this->showed_user_data->set('relevant_users', $showed_relevant_users);
 
                 return;
             }
-            $showed_relevant_users->map(function ($user) {
-                if ($user->id == $this->user->id) {
-                    $user->setRelation('firstUserFeedbacks', $this->feedback);
-                }
+            if ($this->getSecondUserReaction()) {
+                $showed_relevant_users->map(function ($user) {
+                    if ($user->id == $this->user->id) {
+                        $user->setRelation('firstUserFeedbacks', $this->feedback);
+                    }
 
-                return $user;
-            });
-            Cache::set($this->showed_user->username . ':' . 'relevant-users', $showed_relevant_users);
+                    return $user;
+                });
+                $this->showed_user_data->set('relevant_users', $showed_relevant_users);
 
-            return;
+                return;
+            }
         }
 
-        $showed_current_user = Cache::get($this->showed_user->username . ':' . 'current-user');
-        if ($showed_current_user->id == $this->user->id) {
-            $showed_current_user->setRelation('firstUserFeedbacks', $this->feedback);
-            Cache::set($this->showed_user->username . ':' . 'current-user', $showed_current_user);
+        $showed_current_user_id = $showed_current_user->id ?? null;
+        if ($showed_current_user_id == $this->user->id) {
+            $showed_current_user->instant_feedback = $this->feedback;
+            $this->showed_user_data->set('current_user', $showed_current_user);
 
             $this->is_feedbacks_affectable = false;
-        }
-    }
-
-    private function checkFeedbacksForCurrentUser()
-    {
-        $current_user = Cache::get($this->user->username . ':' . 'current-user');
-        $feedbacks = $current_user->getRelation('firstUserFeedbacks');
-        if ($feedbacks->isNotEmpty()) {
-            $feedback = $feedbacks->first();
-            $feedback->second_user_reaction = $this->decision;
-            $feedback->is_resolved = true;
-
-            $this->feedback = $feedback;
         }
     }
 
     private function affectFeedbacksCache()
     {
         if ($this->is_feedbacks_affectable) {
-            $this->feedbacks[] = $this->feedback;
+            $this->feedbacks->push($this->feedback);
             Cache::tags(['feedbacks'])->put('all', $this->feedbacks);
         }
     }
 
-    public function __invoke()
-    {
-        $this->deleteNotificationMessageIfExists();
-        $decision = $this->input('decision');
-        $first_username = $this->input('first_username');
-        $second_username = $this->input('second_username');
-
-        $this->setUsernames($first_username, $second_username);
-        $this->setDecision($decision);
-        $this->setUser();
-        $this->setShowedUser();
-
-        $this->setFirstUser();
-        $this->setSecondUser();
-        $this->setFeedbacks();
-        $this->setFeedback();
-        if ($this->validateFeedback()) {
-            return;
-        }
-        $this->affectFeedbacksCache();
-        $this->affectShowedUserCache();
-        $this->affectLikedUsersCache();
-
-//        $users = TelegramDatingUser::whereIn('id', [$first_user_id, $second_user_id])->get();
-//        $users = $users
-//            ->mapWithKeys(function ($user) use ($first_user_id) {
-//                return $first_user_id == $user->id
-//                    ? ['first_user' => $user]
-//                    : ['second_user' => $user];
-//            });
-//        $first_user = $users->get('first_user');
-//        $second_user = $users->get('second_user');
-//
-//        $feedback = TelegramDatingFeedback::query()
-//            ->where('first_user_id', $first_user_id)
-//            ->where('second_user_id', $second_user_id)
-//            ->where('subject', $first_user->subject)
-//            ->where('category', $first_user->category)
-//            ->first();
-//
-//        $user = empty($feedback)
-//            ? $first_user
-//            : $second_user;
-//
-//        if (empty($feedback)) {
-//            TelegramDatingFeedback::create([
-//                'first_user_id' => $first_user_id,
-//                'second_user_id' => $second_user_id,
-//                'first_user_reaction' => $decision,
-//                'subject' => $user->subject,
-//                'category' => $user->category,
-//                'is_resolved' => !$decision
-//            ]);
-//            $relevant_users = $this->getRelevantUsers($user);
-//            $relevant_user = $this->getRelevantUser($user, $relevant_users);
-//            $this->nextUserIfExists($user, $relevant_user);
-//
-//            return;
-//        }
-//        $user = Cache::get($this->data->getUsername() . ':' . 'user-data');
-//        if ($feedback->first_user_id == $user->id) {
-//            $relevant_users = $this->getRelevantUsers($user);
-//            $relevant_user = $this->getRelevantUser($user, $relevant_users);
-//            $this->nextUserIfExists($user, $relevant_user);
-//
-//            return;
-//        }
-//
-//        if ($feedback->is_resolved) {
-//            $relevant_users = $this->getRelevantUsers($user);
-//            $relevant_user = $this->getRelevantUser($user, $relevant_users);
-//            $this->nextUserIfExists($user, $relevant_user);
-//
-//            return;
-//        }
-//
-//        $feedback->update([
-//            'second_user_reaction' => $decision,
-//            'is_resolved' => true
-//        ]);
-//
-//        if ($decision) {
-//            $this->affectLikedUsersCache($first_user, $second_user);
-//
-//            $this->telegram_request_service
-//                ->setMethodName('editMessageText')
-//                ->setParams([
-//                    'chat_id' => $chat_id,
-//                    'message_id' => $callback_query->message->message_id,
-//                    'text' => 'Ник в telegram: ' .
-//                        '<strong>' . '@' . $first_user->username . '</strong>' .
-//                        PHP_EOL
-//                        . 'Имя: ' .
-//                        $first_user->name .
-//                        PHP_EOL .
-//                        'Предмет: ' .
-//                        $first_user->subject .
-//                        PHP_EOL .
-//                        'Категория: ' .
-//                        $first_user->category .
-//                        PHP_EOL .
-//                        PHP_EOL .
-//                        'О себе: ' .
-//                        $first_user->about,
-//                    'reply_markup' => json_encode([
-//                        'inline_keyboard' => [
-//                            [
-//                                [
-//                                    'text' => 'Следующий',
-//                                    'callback_data' => 'feedback-1-' . $first_user_id . '-' . $second_user_id
-//                                ]
-//                            ]
-//                        ]
-//                    ]),
-//                    'parse_mode' => 'html',
-//                ])
-//                ->make();
-//
-//            return;
-//        }
-//
-//        $relevant_users = $this->getRelevantUsers($user);
-//        $relevant_user = $this->getRelevantUser($user, $relevant_users);
-//        $this->nextUserIfExists($user, $relevant_user);
-    }
-
     private function affectLikedUsersCache()
     {
-        $liked_users = Cache::get($this->user->username . ':' . 'liked-users');
-        $showed_liked_users = Cache::get($this->showed_user->username . ':' . 'liked-users');
+        if (!$this->is_matched) return;
+
+        $current_user = $this->user_data->get('current_user');
+        $current_user->is_revealed = true;
+        $this->user_data->set('current_user', $current_user);
+
+        $liked_users = $this->user_data->get('liked_users');
+        $showed_liked_users = $this->showed_user_data->get('liked_users');
 
         if ($liked_users) {
             $liked_users->push($this->showed_user);
-            Cache::set($this->user->username . ':' . 'liked-users', $liked_users, 3600);
+            $this->user_data->set('liked_users', $liked_users);
         }
         if ($showed_liked_users) {
             $showed_liked_users->push($this->user);
-            Cache::set($this->showed_user->username . ':' . 'liked-users', $showed_liked_users, 3600);
+            $this->showed_user_data->set('liked_users', $showed_liked_users);
         }
     }
 }
