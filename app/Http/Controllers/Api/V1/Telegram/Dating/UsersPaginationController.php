@@ -6,11 +6,13 @@ use Illuminate\Support\Facades\Cache;
 
 class UsersPaginationController extends CommandController
 {
-    public function __invoke()
+    public function __invoke(?UserData $user_data = null)
     {
-        $page = $this->callback_query_args['page'] ?? 1;
-        $username = $this->data->getUsername();
-        $user = Cache::get($username . ':' . 'user-data');
+//        die();
+        $this->setUserData($user_data ?? []);
+        $user = $this->user_data->get('user');
+        $page = $this->input('page') ?? 1;
+
         $liked_users = $this->getLikedUsersIfExist($user);
         if (empty($liked_users)) die();
         $enumerated_buttons = $this->getLikedUsersEnumeratedButtons($liked_users, $page);

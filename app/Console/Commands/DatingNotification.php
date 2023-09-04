@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Http\Controllers\Api\V1\Telegram\Dating\CommandController;
+use App\Http\Controllers\Api\V1\Telegram\Dating\UserData;
 use App\Models\TelegramDatingUser;
 use App\Services\TelegramRequestService;
 use Illuminate\Console\Command;
@@ -43,33 +44,36 @@ class DatingNotification extends Command
 
                 continue;
             }
+            $user_data = new UserData($username);
 
-            $relevant_users = $waiting_user->relevantUsersWithFeedbacks()->get();
+            $relevant_users = $waiting_user->relevantUsersWithFeedbacks();
             if ($relevant_users->isEmpty()) {
                 $this->affectDelayIdCache($waiting_user, $delayed_ids);
 
                 continue;
             }
             $relevant_user = $relevant_users->shift();
-            Cache::set($username . ':' . 'relevant-users', $relevant_users);
+            $user_data->set('relevant_users', $relevant_users);
+            $user_data->set('current_user', $relevant_user);
 
-            $this->notify($relevant_user, $waiting_user);
+            $is_notified = $this->notify($relevant_user, $waiting_user, $user_data);
             $this->affectDelayIdCache($waiting_user, $delayed_ids);
 
-            $waiting_user->is_waiting = false;
-            $waiting_user->save();
-            var_dump($delayed_ids);
+            if ($is_notified) {
+                $waiting_user->is_waiting = false;
+                $waiting_user->save();
+                $user_data->save();
+            }
         }
     }
 
-    private function notify($relevant_user, $waiting_user)
+    private function notify($relevant_user, $waiting_user, UserData $user_data)
     {
-        $username = $waiting_user->username;
-        $user_ids = $this->matchUserIds($relevant_user, $waiting_user);
+        $user_ids = $this->matchUsernames($relevant_user, $waiting_user);
         $prefix = $this->matchPrefix($relevant_user);
-        $first_user_id = $user_ids['first_user_id'];
-        $second_user_id = $user_ids['second_user_id'];
-        $main_message_id = Cache::get($username . ':' . 'main-message-id');
+        $first_username = $user_ids['first_username'];
+        $second_username = $user_ids['second_username'];
+        $main_message_id = $user_data->get('main_message_id');
         $chat_id = $waiting_user->chat_id;
 
         $method_name = empty($main_message_id)
@@ -95,7 +99,7 @@ class DatingNotification extends Command
                     'О себе: ' .
                     $relevant_user->about,
                 'reply_markup' => json_encode([
-                    'inline_keyboard' => $this->getInlineContent($first_user_id, $second_user_id)
+                    'inline_keyboard' => $this->getInlineContent($first_username, $second_username)
                 ]),
                 'parse_mode' => 'html',
             ])
@@ -109,50 +113,56 @@ class DatingNotification extends Command
                 'parse_mode' => 'html',
             ])
             ->make();
+        if ($response->ok) {
+            $user_data->set('notification_message_id', $response->result->message_id);
 
-        Cache::set($username . ':' . 'notification-message-id', $response->result->message_id);
+            return true;
+        }
+
+        return false;
     }
 
-    private function matchUserIds($relevant_user, $waiting_user)
+    private function matchUsernames($relevant_user, $waiting_user)
     {
-        $feedbacks = $relevant_user->getRelation('firstUserFeedbacks');
-        $first_user_id = $feedbacks->isEmpty()
-            ? $waiting_user->id
-            : $relevant_user->id;
-        $second_user_id = $first_user_id === $waiting_user->id
-            ? $relevant_user->id
-            : $waiting_user->id;
+        $feedbacks = $relevant_user->getRelation('firstUserFeedbacks') ?? collect();
+        $first_username = $feedbacks->isEmpty()
+            ? $waiting_user->username
+            : $relevant_user->username;
+        $second_username = $first_username === $waiting_user->username
+            ? $relevant_user->username
+            : $waiting_user->username;
 
         return [
-            'first_user_id' => $first_user_id,
-            'second_user_id' => $second_user_id
+            'first_username' => $first_username,
+            'second_username' => $second_username
         ];
     }
 
     private function matchPrefix($relevant_user)
     {
-        $feedbacks = $relevant_user->getRelation('firstUserFeedbacks');
+        $feedbacks = $relevant_user->getRelation('firstUserFeedbacks') ?? collect();
+
         return $feedbacks->isEmpty()
             ? ''
             : '<strong>Вас лайкнули!</strong>' . PHP_EOL;
     }
 
-    private function getInlineContent($first_user_id, $second_user_id)
+    private function getInlineContent($first_username, $second_username)
     {
         return [
             [
                 [
                     'text' => 'Показать',
-                    'callback_data' => 'feedback-1-' . $first_user_id . '-' . $second_user_id . '-' . 0
+                    'callback_data' => 'feedback-1-' . $first_username . '-' . $second_username . '-' . 0
                 ],
                 [
                     'text' => 'Следующий',
-                    'callback_data' => 'feedback-0-' . $first_user_id . '-' . $second_user_id . '-' . 0
+                    'callback_data' => 'feedback-0-' . $first_username . '-' . $second_username . '-' . 0
                 ]
             ],
             [
                 [
-                    'text' => 'Взаимности',
+                    'text' => 'Симпатии',
                     'callback_data' => 'is-users-active' . '-' . 1
                 ]
             ]

@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Api\V1\Telegram\Dating;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class StartCommandController extends CommandController
 {
     public function __invoke()
     {
-        $user_data = $this->setUserData();
         $username = $this->data->getUsername();
+        $user_data = new UserData($username);
 
         $main_message_id = $user_data->get('main_message_id');
         if ($main_message_id) {
@@ -63,9 +64,9 @@ class StartCommandController extends CommandController
         $register_data = new RegisterData($username, [
             'fields' => $fields
         ]);
+
         $register_data->save();
         $register_service->setRegisterData($register_data);
         $register_service->proceed();
-
     }
 }

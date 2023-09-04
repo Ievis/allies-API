@@ -25,7 +25,7 @@ class UserData
 
         $this->liked_users = $user_data->get('liked_users', collect());
         $this->relevant_users = $user_data->get('relevant_users', collect());
-        $this->user = $user_data->get('user', null);
+        $this->user = $user_data->get('user', TelegramDatingUser::query()->where('username', $username)->first());
         $this->current_user = $user_data->get('current_user', null);
         $this->main_message_id = $user_data->get('main_message_id', null);
         $this->notification_message_id = $user_data->get('notification_message_id', null);
@@ -41,7 +41,7 @@ class UserData
             'main_message_id' => $this->main_message_id,
             'notification_message_id' => $this->notification_message_id
         ]);
-        Cache::set($this->user->username . ':' . 'user-data', $user_data);
+        Cache::set($this->user->username . ':' . 'user-data', $user_data, 60 * 60 * 24 * 7);
 
         return true;
     }

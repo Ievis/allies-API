@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Telegram\Dating;
 
 use App\Models\TelegramDatingUser;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class RegisterService extends CommandController
 {

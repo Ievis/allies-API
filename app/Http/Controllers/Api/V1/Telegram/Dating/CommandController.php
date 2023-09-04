@@ -8,9 +8,14 @@ class CommandController extends TelegramController
 {
     public UserData $user_data;
 
-    public function setUserData(array $user_data = []): UserData
+    public function setUserData(UserData|array $user_data = []): UserData
     {
-        $this->user_data = new UserData($this->data->getUsername(), $user_data);
+        $this->user_data = $user_data instanceof UserData
+            ? $user_data
+            : new UserData($this->data->getUsername(), $user_data);
+
+        $user = $this->user_data->get('user');
+        if (empty($user)) die();
 
         return $this->user_data;
     }
@@ -71,7 +76,7 @@ class CommandController extends TelegramController
     {
         $chat_id = $this->data->getChatId();
         $callback_query = $this->data->getCallbackQuery();
-        $feedbacks = $relevant_user->getRelation('firstUserFeedbacks');
+        $feedbacks = $relevant_user->getRelation('firstUserFeedbacks') ?? collect();
 
         $first_username = $feedbacks->isEmpty()
             ? $user->username

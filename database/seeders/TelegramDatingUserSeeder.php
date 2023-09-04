@@ -22,7 +22,7 @@ class TelegramDatingUserSeeder extends Seeder
             'category' => 'ЕГЭ',
             'about' => 'I am Leo'
         ]);
-        $users = TelegramDatingUser::factory(500)->create();
+        $users = TelegramDatingUser::factory(400)->create();
         foreach ($users as $user) {
             $user_data = new UserData($user->username, [
                 'user' => $user

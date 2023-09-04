@@ -6,6 +6,7 @@ use App\Models\TelegramDatingFeedback;
 use App\Models\TelegramDatingUser;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class FeedbackCallbackController extends CommandController
 {
@@ -22,10 +23,20 @@ class FeedbackCallbackController extends CommandController
     private Collection $feedbacks;
     private bool $is_feedbacks_affectable = true;
 
+    private function hasCurrentUser()
+    {
+        $current_user = $this->user_data->get('current_user');
+
+        return isset($current_user);
+    }
+
     public function __invoke()
     {
-//        die();
         $this->setUserData();
+        if (!$this->hasCurrentUser()) {
+            $relevant_user = $this->getRelevantUser();
+            $this->nextUserIfExists($relevant_user);
+        }
         $this->deleteNotificationMessageIfExists();
         $decision = $this->input('decision');
         $first_username = $this->input('first_username');
@@ -153,7 +164,7 @@ class FeedbackCallbackController extends CommandController
 
     private function validateFeedback()
     {
-        return !$this->feedbacks->contains($this->feedbacks);
+        return !$this->feedbacks->contains($this->feedback);
     }
 
     private function validateInstantFeedback(): bool
@@ -204,7 +215,20 @@ class FeedbackCallbackController extends CommandController
     private function affectFeedbacksCache()
     {
         if ($this->is_feedbacks_affectable) {
-            $this->feedbacks->push($this->feedback);
+            $is_replaced = false;
+            $this->feedbacks = $this->feedbacks->map(function ($feedback) use (&$is_replaced) {
+                if ($feedback['first_user_id'] == $this->first_user->id and $feedback['second_user_id'] == $this->second_user->id) {
+
+                    $is_replaced = true;
+                    return $this->feedback;
+                }
+
+                return $feedback;
+            })->reject(function ($feedback) {
+                return $feedback['first_user_id'] == $this->first_user->id and $feedback['second_user_id'] == $this->second_user->id and !$feedback['is_resolved'];
+            });
+
+            if (!$is_replaced) $this->feedbacks->push($this->feedback);
             Cache::tags(['feedbacks'])->put('all', $this->feedbacks);
         }
     }

@@ -17,6 +17,7 @@ class TelegramDatingFeedbackSeeder extends Seeder
     {
         $users = TelegramDatingUser::query()
             ->where('username', '!=', 'levchaba')
+            ->limit(200)
             ->get();
         $me = TelegramDatingUser::query()
             ->where('username', 'levchaba')

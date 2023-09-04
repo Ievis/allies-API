@@ -29,12 +29,32 @@ class FeedbacksUpsert extends Command
      */
     public function handle()
     {
-        $feedbacks = Cache::tags(['feedbacks'])->get('all')->unique()->values() ?? collect();
-        dd($feedbacks);
+        $feedbacks = Cache::tags(['feedbacks'])->get('all')?->unique()?->values() ?? collect();
+        $query = TelegramDatingFeedback::query();
+        foreach ($feedbacks as $feedback) {
+            $query = $query->orWhere('first_user_id', $feedback['first_user_id'])
+                ->where('second_user_id', $feedback['second_user_id'])
+                ->where('subject', $feedback['subject'])
+                ->where('category', $feedback['category']);
+        }
+        $feedbacks_to_update = collect($query->get()?->unique()?->toArray());
+        $feedbacks = $feedbacks->map(function ($feedback) use ($feedbacks_to_update) {
+            $feedback_to_update = $feedbacks_to_update->where('first_user_id', $feedback['first_user_id'])
+                ->where('second_user_id', $feedback['second_user_id'])
+                ->where('subject', $feedback['subject'])
+                ->where('category', $feedback['category'])
+                ->first();
+
+            return $feedback_to_update
+                ? array_diff_key($feedback_to_update, array_flip(['created_at', 'updated_at']))
+                : array_merge(['id' => 0], $feedback);
+        })
+            ->values()
+            ->toArray();
+
         TelegramDatingFeedback::upsert(
-            $feedbacks->toArray(),
-            ['first_user_id', 'second_user_id', 'subject', 'category'],
-            ['first_user_reaction', 'second_user_reaction', 'is_resolved']
+            $feedbacks, ['id'], ['first_user_reaction', 'second_user_reaction', 'is_resolved']
         );
+        Cache::tags(['feedbacks'])->forget('all');
     }
 }

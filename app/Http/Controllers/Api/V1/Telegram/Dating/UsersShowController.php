@@ -9,10 +9,10 @@ class UsersShowController extends CommandController
 {
     public function __invoke()
     {
-        $username = $this->data->getUsername();
-        $user = Cache::get($username . ':' . 'user-data');
-        $liked_user_id = $this->callback_query_args['user_id'];
-        $page = $this->callback_query_args['page'];
+        $this->setUserData();
+        $user = $this->user_data->get('user');
+        $liked_user_id = $this->input('user_id');
+        $page = $this->input('page');
         $liked_users = $this->getLikedUsersIfExist($user);
 
         $liked_user = $liked_users->first(function ($user) use ($liked_user_id) {

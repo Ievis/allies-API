@@ -12,7 +12,7 @@ class ErrorCommandController extends CommandController
         $username = $this->data->getUsername();
         $register_data = new RegisterData($username);
 
-        if ($register_data->exists()) {
+        if ($register_data->get('fields')) {
             $register_service = new RegisterService();
             $register_service->setTelegramUserData($this->data);
             $register_service->setCallbackArgs($this->callback_query_args);
