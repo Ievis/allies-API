@@ -4,7 +4,7 @@ namespace App\Exceptions;
 
 use Exception;
 
-class BadCredentionals extends Exception
+class BadCredentials extends Exception
 {
     //
 }

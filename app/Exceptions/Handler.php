@@ -64,8 +64,6 @@ class Handler extends ExceptionHandler
         });
 
         $this->renderable(function (TokenInvalidException $e) {
-            if ($e instanceof TokenBlacklistedException) TokenBlacklistedException::throw();
-
             return response()->json([
                 'success' => false,
                 'message' => 'Некорректный токен'
@@ -103,7 +101,7 @@ class Handler extends ExceptionHandler
                 ->setEncodingOptions(JSON_UNESCAPED_UNICODE);
         });
 
-        $this->renderable(function (BadCredentionals $e) {
+        $this->renderable(function (BadCredentials $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Неверный логин или пароль'

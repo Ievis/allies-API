@@ -22,5 +22,7 @@ class UsersShowController extends CommandController
         $enumerated_buttons = $this->getLikedUsersEnumeratedButtons($liked_users, $page);
         $pagination_buttons = $this->getLikedUsersPaginationButtons($liked_users, $page);
         $this->displayLikedUserWithPagination($liked_user, $enumerated_buttons, $pagination_buttons);
+
+        $this->user_data->save();
     }
 }

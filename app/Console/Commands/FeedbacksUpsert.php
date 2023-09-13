@@ -31,13 +31,17 @@ class FeedbacksUpsert extends Command
     {
         $feedbacks = Cache::tags(['feedbacks'])->get('all')?->unique()?->values() ?? collect();
         $query = TelegramDatingFeedback::query();
+
         foreach ($feedbacks as $feedback) {
             $query = $query->orWhere('first_user_id', $feedback['first_user_id'])
                 ->where('second_user_id', $feedback['second_user_id'])
                 ->where('subject', $feedback['subject'])
                 ->where('category', $feedback['category']);
         }
-        $feedbacks_to_update = collect($query->get()?->unique()?->toArray());
+        $feedbacks_to_update = $feedbacks->isEmpty()
+            ? collect()
+            : $query->get()->unique();
+
         $feedbacks = $feedbacks->map(function ($feedback) use ($feedbacks_to_update) {
             $feedback_to_update = $feedbacks_to_update->where('first_user_id', $feedback['first_user_id'])
                 ->where('second_user_id', $feedback['second_user_id'])
@@ -46,7 +50,7 @@ class FeedbacksUpsert extends Command
                 ->first();
 
             return $feedback_to_update
-                ? array_diff_key($feedback_to_update, array_flip(['created_at', 'updated_at']))
+                ? array_merge(['id' => $feedback_to_update->id], $feedback)
                 : array_merge(['id' => 0], $feedback);
         })
             ->values()

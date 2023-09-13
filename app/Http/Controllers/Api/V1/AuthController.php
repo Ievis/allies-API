@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Exceptions\BadCredentionals;
+use App\Exceptions\BadCredentials;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Models\User;
@@ -41,7 +41,7 @@ class AuthController extends Controller
     public function login(LoginRequest $request)
     {
         $credentials = $request->validated();
-        if (!$token = auth()->attempt($credentials)) throw new BadCredentionals();
+        if (!$token = auth()->attempt($credentials)) throw new BadCredentials();
 
         return $this->respondWithToken($token);
     }

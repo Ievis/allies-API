@@ -14,6 +14,10 @@ class ResetCallbackController extends CommandController
         $message_id = $this->data->getCallbackQuery()->message->message_id;
         $this->deleteMessage($message_id);
 
+        if(Cache::has($username . 'user-data')) {
+            die();
+        }
+
         $register_data = new RegisterData($username);
         $fields = $register_data->get('fields');
         $fields[$attribute]['is_completed'] = false;

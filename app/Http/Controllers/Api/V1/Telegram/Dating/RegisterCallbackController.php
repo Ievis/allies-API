@@ -12,6 +12,10 @@ class RegisterCallbackController extends CommandController
         $callback_query = $this->data->getCallbackQuery();
         $this->deleteMessage($callback_query->message->message_id);
 
+        if(Cache::has($username . 'user-data')) {
+            die();
+        }
+
         $register_service = new RegisterService();
         $register_service->setTelegramUserData($this->data);
         $register_service->setCallbackArgs($this->callback_query_args);

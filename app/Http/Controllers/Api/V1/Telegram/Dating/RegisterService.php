@@ -173,19 +173,15 @@ class RegisterService extends CommandController
         $username = $this->data->getUsername();
         $chat_id = $this->data->getChatId();
         $fields = $this->register_data->get('fields');
-        $name = $fields['name']['value'];
-        $subject = $fields['subject']['value'];
-        $category = $fields['category']['value'];
-        $about = $fields['about']['value'];
 
         $user = TelegramDatingUser::updateOrCreate([
             'username' => $username
         ], [
             'chat_id' => $chat_id,
-            'name' => $name,
-            'subject' => $subject,
-            'category' => $category,
-            'about' => $about
+            'name' => $fields['name']['value'],
+            'subject' => $fields['subject']['value'],
+            'category' => $fields['category']['value'],
+            'about' => $fields['about']['value']
         ]);
         $this->register_data->flush();
 

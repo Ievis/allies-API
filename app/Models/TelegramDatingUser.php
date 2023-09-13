@@ -110,6 +110,30 @@ class TelegramDatingUser extends Model
 
     public function likedUsers()
     {
+        $feedbacks = Cache::tags(['feedbacks'])->get('all') ?? collect();
+
+        $first_cached_liked_feedbacks = $feedbacks
+            ->where('first_user_id', $this->id)
+            ->where('first_user_reaction', true)
+            ->where('second_user_reaction', true)
+            ->where('subject', $this->subject)
+            ->where('category', $this->category)
+            ->where('is_resolved', true);
+        $second_cached_liked_feedbacks = $feedbacks
+            ->where('second_user_id', $this->id)
+            ->where('first_user_reaction', true)
+            ->where('second_user_reaction', true)
+            ->where('subject', $this->subject)
+            ->where('category', $this->category)
+            ->where('is_resolved', true);
+        $cached_liked_feedbacks = $first_cached_liked_feedbacks->union($second_cached_liked_feedbacks);
+
+        $included_ids = $cached_liked_feedbacks->map(function ($feedback) {
+            return $feedback['first_user_id'] == $this->id
+                ? $feedback['second_user_id']
+                : $feedback['first_user_id'];
+        });
+
         return $this::query()
             ->where('id', '!=', $this->id)
             ->whereHas('firstUserFeedbacks', function ($query) {
@@ -127,6 +151,8 @@ class TelegramDatingUser extends Model
                     ->where('subject', $this->subject)
                     ->where('category', $this->category)
                     ->where('is_resolved', true);
-            });
+            })
+            ->orWhere('id', '!=', $this->id)
+            ->whereIn('id', $included_ids);
     }
 }

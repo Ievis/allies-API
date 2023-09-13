@@ -14,6 +14,10 @@ class ConfirmCallbackController extends CommandController
         $chat_id = $this->data->getChatId();
         $callback_query = $this->data->getCallbackQuery();
 
+        if(Cache::has($username . 'user-data')) {
+            die();
+        }
+
         $register_data = new RegisterData($username);
         $fields = $register_data->get('fields');
 

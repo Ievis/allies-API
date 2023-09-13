@@ -15,7 +15,16 @@ class CommandController extends TelegramController
             : new UserData($this->data->getUsername(), $user_data);
 
         $user = $this->user_data->get('user');
-        if (empty($user)) die();
+        if (empty($user)) {
+            $this->respondWithMessage(
+                'Ваши данные устарели.' .
+                PHP_EOL .
+                '<strong>Пройдите процедуру регистрации ещё раз!.</strong>' .
+                PHP_EOL
+            );
+
+            die();
+        }
 
         return $this->user_data;
     }
@@ -265,7 +274,7 @@ class CommandController extends TelegramController
         $liked_users = $this->user_data->get('liked_users');
 
         $callback_query = $this->data->getCallbackQuery();
-        if (empty($liked_users)) {
+        if (collect($liked_users)->isEmpty()) {
             $liked_users = $user->likedUsers()->get();
             $this->user_data->set('liked_users', $liked_users);
         }

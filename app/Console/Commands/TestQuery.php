@@ -31,33 +31,36 @@ class TestQuery extends Command
             ->where('username', 'levchaba')
             ->first();
 
-        $relevant_users = $user->relevantUsersWithFeedbacks();
+        $liked_users = $user->likedUsers()->get();
+        dd($liked_users);
 
-        $cached_feedbacks = collect(Cache::tags(['feedbacks'])->get('all'));
-        $liked_feedbacks = $cached_feedbacks->where('first_user_reaction', true)
-            ->where('second_user_id', $user->id)
-            ->where('subject', $user->subject)
-            ->where('category', $user->category)
-            ->where('is_resolved', false)
-            ->unique()
-            ->values();
-        $first_excluded_ids = $cached_feedbacks->where('first_user_id', $user->id)
-            ->where('subject', $user->subject)
-            ->where('category', $user->category)
-            ->pluck('second_user_id')
-            ->unique()
-            ->values()
-            ->toArray();
-        $second_excluded_ids = $cached_feedbacks->where('second_user_id', $user->id)
-            ->where('subject', $user->subject)
-            ->where('category', $user->category)
-            ->pluck('first_user_id')
-            ->unique()
-            ->values()
-            ->toArray();
-        $excluded_ids = array_merge($first_excluded_ids, $second_excluded_ids);
-        $included_user_ids = $liked_feedbacks->pluck('first_user_id')->toArray();
-
-        dd($relevant_users, $included_user_ids, $excluded_ids);
+//        $relevant_users = $user->relevantUsersWithFeedbacks();
+//
+//        $cached_feedbacks = collect(Cache::tags(['feedbacks'])->get('all'));
+//        $liked_feedbacks = $cached_feedbacks->where('first_user_reaction', true)
+//            ->where('second_user_id', $user->id)
+//            ->where('subject', $user->subject)
+//            ->where('category', $user->category)
+//            ->where('is_resolved', false)
+//            ->unique()
+//            ->values();
+//        $first_excluded_ids = $cached_feedbacks->where('first_user_id', $user->id)
+//            ->where('subject', $user->subject)
+//            ->where('category', $user->category)
+//            ->pluck('second_user_id')
+//            ->unique()
+//            ->values()
+//            ->toArray();
+//        $second_excluded_ids = $cached_feedbacks->where('second_user_id', $user->id)
+//            ->where('subject', $user->subject)
+//            ->where('category', $user->category)
+//            ->pluck('first_user_id')
+//            ->unique()
+//            ->values()
+//            ->toArray();
+//        $excluded_ids = array_merge($first_excluded_ids, $second_excluded_ids);
+//        $included_user_ids = $liked_feedbacks->pluck('first_user_id')->toArray();
+//
+//        dd($relevant_users, $included_user_ids, $excluded_ids);
     }
 }

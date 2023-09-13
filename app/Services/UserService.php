@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Exceptions\BadCredentionals;
+use App\Exceptions\BadCredentials;
 use App\Http\Resources\V1\UserResource;
 use App\Models\Course;
 use App\Models\User;

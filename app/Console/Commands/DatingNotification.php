@@ -41,6 +41,8 @@ class DatingNotification extends Command
                 continue;
             }
             if (!Cache::has($username . ':' . 'user-data')) {
+                $waiting_user->is_waiting = false;
+                $waiting_user->save();
 
                 continue;
             }

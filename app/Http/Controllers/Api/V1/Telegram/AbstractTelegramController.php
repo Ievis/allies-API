@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Telegram;
 
 use App\Services\TelegramRequestService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use stdClass;
 
 abstract class AbstractTelegramController
@@ -111,6 +112,14 @@ abstract class AbstractTelegramController
     {
         $message = $this->getMessageIfExists();
         $callback_query = $this->getCallbackQueryIfExists();
+        if (empty($message->from->username) and empty($callback_query->from->username)) {
+            $this->respondWithMessage(
+                'Установите ник, чтобы пользоваться этим ботом!' .
+                PHP_EOL .
+                '<strong>Настройки > Изм. > Имя пользователя</strong>', $this->getChatId());
+
+            die();
+        }
 
         return $message->from->username ?? $callback_query->from->username;
     }
