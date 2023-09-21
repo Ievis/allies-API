@@ -25,10 +25,18 @@ class DatingNotification extends Command
      * @var string
      */
     protected $description = 'Command description';
+    private TelegramRequestService $telegram_service;
 
     /**
      * Execute the console command.
      */
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->telegram_service = new TelegramRequestService(env('TELEGRAM_DATING_BOT_API_TOKEN'));
+    }
+
     public function handle()
     {
         $delayed_ids = (array)Cache::tags(['cron-delay'])->get('id');
@@ -41,9 +49,30 @@ class DatingNotification extends Command
                 continue;
             }
             if (!Cache::has($username . ':' . 'user-data')) {
+                $this->telegram_service
+                    ->setMethodName('deleteMessage')
+                    ->setParams([
+                        'chat_id' => $waiting_user->chat_id,
+                        'message_id' => $waiting_user->main_message_id,
+                        'parse_mode' => 'html',
+                    ])
+                    ->make();
+                $waiting_user->main_message_id = null;
                 $waiting_user->is_waiting = false;
                 $waiting_user->save();
 
+                $this->telegram_service
+                    ->setMethodName('sendMessage')
+                    ->setParams([
+                        'chat_id' => $waiting_user->chat_id,
+                        'text' => '<strong>Вы бездействовали в течение долгого времени.</strong>' .
+                            PHP_EOL .
+                            '<strong>Пройдите процедуру регистрации ещё раз.</strong>' .
+                            PHP_EOL .
+                            '<strong>Не бойтесь, ваши симпатии сохранились!</strong>',
+                        'parse_mode' => 'html',
+                    ])
+                    ->make();
                 continue;
             }
             $user_data = new UserData($username);
@@ -55,13 +84,12 @@ class DatingNotification extends Command
                 continue;
             }
             $relevant_user = $relevant_users->shift();
-            $user_data->set('relevant_users', $relevant_users);
-            $user_data->set('current_user', $relevant_user);
-
             $is_notified = $this->notify($relevant_user, $waiting_user, $user_data);
             $this->affectDelayIdCache($waiting_user, $delayed_ids);
 
             if ($is_notified) {
+                $user_data->set('relevant_users', $relevant_users);
+                $user_data->set('current_user', $relevant_user);
                 $waiting_user->is_waiting = false;
                 $waiting_user->save();
                 $user_data->save();
@@ -81,9 +109,8 @@ class DatingNotification extends Command
         $method_name = empty($main_message_id)
             ? 'sendMessage'
             : 'editMessageText';
-        $telegram_request_service = new TelegramRequestService(env('TELEGRAM_DATING_BOT_API_TOKEN'));
 
-        $response = $telegram_request_service
+        $response = $this->telegram_service
             ->setMethodName($method_name)
             ->setParams([
                 'chat_id' => $chat_id,
@@ -107,7 +134,7 @@ class DatingNotification extends Command
             ])
             ->make();
 
-        $response = $telegram_request_service
+        $response = $this->telegram_service
             ->setMethodName('sendMessage')
             ->setParams([
                 'chat_id' => $chat_id,

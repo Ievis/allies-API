@@ -71,6 +71,7 @@ class TelegramDatingUser extends Model
                     ->where('is_resolved', false);
             })
             ->orWhereIn('id', $included_ids)
+            ->where('id', '!=', $this->id)
             ->whereNotIn('id', $excluded_ids)
             ->with(['firstUserFeedbacks' => function ($query) {
                 return $query->where('first_user_reaction', true)
@@ -96,7 +97,7 @@ class TelegramDatingUser extends Model
 
         return $relevant_liked_users
             ->union($relevant_unliked_users)
-            ->limit(5)
+            ->limit(500)
             ->get()
             ->map(function ($user) use ($liked_feedbacks, $included_ids) {
                 if (in_array($user->id, $included_ids)) {

@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1\Telegram\Dating;
 
-use App\Models\TelegramDatingFeedback;
 use App\Models\TelegramDatingUser;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Log;
 
 class FeedbackCallbackController extends CommandController
 {
@@ -21,13 +19,12 @@ class FeedbackCallbackController extends CommandController
     private bool $is_matched;
     private array $feedback;
     private Collection $feedbacks;
-    private bool $is_feedbacks_affectable = true;
 
     private function hasCurrentUser()
     {
         $current_user = $this->user_data->get('current_user');
 
-        return isset($current_user);
+        return !empty($current_user);
     }
 
     public function __invoke()
@@ -59,8 +56,8 @@ class FeedbackCallbackController extends CommandController
             return;
         }
 
-        $this->affectFeedbacksCache();
         $this->affectShowedUserCache();
+        $this->affectFeedbacksCache();
         $this->affectLikedUsersCache();
 
         if ($this->is_matched) {
@@ -151,19 +148,54 @@ class FeedbackCallbackController extends CommandController
 
     private function setFeedback()
     {
+        $first_user_id = $this->first_user->id;
+        $second_user_id = $this->second_user->id;
+        $first_user_reaction = $this->getFirstUserReaction();
+        $second_user_reaction = $this->getSecondUserReaction();
+        $is_resolved = $this->isResolved();
+        $current_user = $this->user_data->get('current_user');
+        $instant_feedback = $current_user->instant_feedback ?? null;
+
+        if ($instant_feedback) {
+            $second_user_id = $first_user_id;
+            $first_user_id = $instant_feedback['first_user_id'];
+            $second_user_reaction = $first_user_reaction;
+            $first_user_reaction = $instant_feedback['first_user_reaction'];
+            $is_resolved = $first_user_reaction and $second_user_reaction;
+            $this->is_matched = $is_resolved;
+        }
         $this->feedback = [
-            'first_user_id' => $this->first_user->id,
-            'second_user_id' => $this->second_user->id,
-            'first_user_reaction' => $this->getFirstUserReaction(),
-            'second_user_reaction' => $this->getSecondUserReaction(),
+            'first_user_id' => $first_user_id,
+            'second_user_id' => $second_user_id,
+            'first_user_reaction' => $first_user_reaction,
+            'second_user_reaction' => $second_user_reaction,
             'subject' => $this->user->subject,
             'category' => $this->user->category,
-            'is_resolved' => $this->isResolved(),
+            'is_resolved' => $is_resolved,
         ];
     }
 
     private function validateFeedback()
     {
+        $unresolved_previous_feedback = $this->feedbacks
+            ->where('first_user_id', $this->first_user->id)
+            ->where('second_user_id', $this->second_user->id)
+            ->where('subject', $this->user->subject)
+            ->where('category', $this->user->category)
+            ->where('is_resolved', false)
+            ->where('first_user_reaction', !$this->getFirstUserReaction())
+            ->first();
+        $resolved_previous_feedback = $this->feedbacks
+            ->where('first_user_id', $this->first_user->id)
+            ->where('second_user_id', $this->second_user->id)
+            ->where('subject', $this->user->subject)
+            ->where('category', $this->user->category)
+            ->where('is_resolved', true)
+            ->first();
+        if ($unresolved_previous_feedback or $resolved_previous_feedback) {
+            return false;
+        }
+
         return !$this->feedbacks->contains($this->feedback);
     }
 
@@ -172,7 +204,7 @@ class FeedbackCallbackController extends CommandController
         $current_user = $this->user_data->get('current_user');
         $instant_feedback = $current_user->instant_feedback ?? null;
 
-        return is_null($instant_feedback) or !$instant_feedback->is_resolved;
+        return empty($instant_feedback) or !$instant_feedback['is_resolved'];
     }
 
     private function affectShowedUserCache()
@@ -182,55 +214,49 @@ class FeedbackCallbackController extends CommandController
 
         if ($showed_relevant_users->contains($this->user)) {
             if (!$this->getFirstUserReaction()) {
-                $showed_relevant_users->reject(function ($user) {
-                    return $user == $this->user->id;
+                $showed_relevant_users = $showed_relevant_users->reject(function ($user) {
+                    return $user->id == $this->user->id;
                 });
                 $this->showed_user_data->set('relevant_users', $showed_relevant_users);
 
                 return;
             }
-            if ($this->getSecondUserReaction()) {
-                $showed_relevant_users->map(function ($user) {
-                    if ($user->id == $this->user->id) {
-                        $user->setRelation('firstUserFeedbacks', $this->feedback);
-                    }
+            $showed_relevant_users->map(function ($user) {
+                if ($user->id == $this->user->id) {
+                    $user->instant_feedback = $this->feedback;
+                }
 
-                    return $user;
-                });
-                $this->showed_user_data->set('relevant_users', $showed_relevant_users);
+                return $user;
+            });
+            $this->showed_user_data->set('relevant_users', $showed_relevant_users);
 
-                return;
-            }
+            return;
         }
 
         $showed_current_user_id = $showed_current_user->id ?? null;
         if ($showed_current_user_id == $this->user->id) {
             $showed_current_user->instant_feedback = $this->feedback;
             $this->showed_user_data->set('current_user', $showed_current_user);
-
-            $this->is_feedbacks_affectable = false;
         }
     }
 
     private function affectFeedbacksCache()
     {
-        if ($this->is_feedbacks_affectable) {
-            $is_replaced = false;
-            $this->feedbacks = $this->feedbacks->map(function ($feedback) use (&$is_replaced) {
-                if ($feedback['first_user_id'] == $this->first_user->id and $feedback['second_user_id'] == $this->second_user->id) {
+        $is_replaced = false;
+        $this->feedbacks = $this->feedbacks->map(function ($feedback) use (&$is_replaced) {
+            if ($feedback['first_user_id'] == $this->feedback['first_user_id'] and $feedback['second_user_id'] == $this->feedback['second_user_id']) {
 
-                    $is_replaced = true;
-                    return $this->feedback;
-                }
+                $is_replaced = true;
+                return $this->feedback;
+            }
 
-                return $feedback;
-            })->reject(function ($feedback) {
-                return $feedback['first_user_id'] == $this->first_user->id and $feedback['second_user_id'] == $this->second_user->id and !$feedback['is_resolved'];
-            });
+            return $feedback;
+        })->reject(function ($feedback) {
+            return $feedback['first_user_id'] == $this->first_user->id and $feedback['second_user_id'] == $this->second_user->id and !$feedback['is_resolved'];
+        });
 
-            if (!$is_replaced) $this->feedbacks->push($this->feedback);
-            Cache::tags(['feedbacks'])->put('all', $this->feedbacks);
-        }
+        if (!$is_replaced) $this->feedbacks->push($this->feedback);
+        Cache::tags(['feedbacks'])->put('all', $this->feedbacks);
     }
 
     private function affectLikedUsersCache()

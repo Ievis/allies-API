@@ -18,6 +18,7 @@ return new class extends Migration {
             $table->text('about');
             $table->string('subject');
             $table->string('category');
+            $table->integer('main_message_id')->nullable();
             $table->boolean('is_waiting')->default(true);
             $table->timestamps();
         });

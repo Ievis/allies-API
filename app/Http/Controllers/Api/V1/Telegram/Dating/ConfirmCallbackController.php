@@ -14,7 +14,7 @@ class ConfirmCallbackController extends CommandController
         $chat_id = $this->data->getChatId();
         $callback_query = $this->data->getCallbackQuery();
 
-        if(Cache::has($username . 'user-data')) {
+        if (Cache::has($username . 'user-data')) {
             die();
         }
 
@@ -52,7 +52,6 @@ class ConfirmCallbackController extends CommandController
 
             $register_service->setRegisterData($register_data);
             $user = $register_service->persist();
-
             $user_data = $this->setUserData([
                 'user' => $user
             ]);
@@ -60,10 +59,12 @@ class ConfirmCallbackController extends CommandController
 
             $message = $this->nextUserIfExists($relevant_user, true);
             if ($message) {
-                $user_data->set('main_message_id', $message->result->message_id);
+                $this->user_data->set('main_message_id', $message->result->message_id);
             }
 
-            $user_data->save();
+            $user->main_message_id = $this->user_data->get('main_message_id');
+            $user->save();
+            $this->user_data->save();
             return;
         }
 
