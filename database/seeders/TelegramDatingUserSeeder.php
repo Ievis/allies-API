@@ -14,15 +14,15 @@ class TelegramDatingUserSeeder extends Seeder
      */
     public function run(): void
     {
-//        TelegramDatingUser::create([
-//            'username' => 'levchaba',
-//            'chat_id' => '1013168319',
-//            'name' => 'Leo',
-//            'subject' => 'Математика',
-//            'category' => 'ЕГЭ',
-//            'about' => 'I am Leo'
-//        ]);
-        $users = TelegramDatingUser::factory(120)->create();
+        TelegramDatingUser::create([
+            'username' => 'levchaba',
+            'chat_id' => '1013168319',
+            'name' => 'Leo',
+            'subject' => 'Математика',
+            'category' => 'ЕГЭ',
+            'about' => 'I am Leo'
+        ]);
+        $users = TelegramDatingUser::factory(100)->create();
         foreach ($users as $user) {
             $user_data = new UserData($user->username, [
                 'user' => $user

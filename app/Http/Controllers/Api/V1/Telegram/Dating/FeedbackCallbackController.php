@@ -161,8 +161,8 @@ class FeedbackCallbackController extends CommandController
             $first_user_id = $instant_feedback['first_user_id'];
             $second_user_reaction = $first_user_reaction;
             $first_user_reaction = $instant_feedback['first_user_reaction'];
-            $is_resolved = $first_user_reaction and $second_user_reaction;
-            $this->is_matched = $is_resolved;
+            $is_resolved = true;
+            $this->is_matched = $first_user_reaction && $second_user_reaction;
         }
         $this->feedback = [
             'first_user_id' => $first_user_id,

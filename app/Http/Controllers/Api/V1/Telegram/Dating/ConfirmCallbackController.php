@@ -52,11 +52,11 @@ class ConfirmCallbackController extends CommandController
 
             $register_service->setRegisterData($register_data);
             $user = $register_service->persist();
-            $user_data = $this->setUserData([
+            $this->setUserData([
                 'user' => $user
             ]);
-            $relevant_user = $this->getRelevantUser();
 
+            $relevant_user = $this->getRelevantUser();
             $message = $this->nextUserIfExists($relevant_user, true);
             if ($message) {
                 $this->user_data->set('main_message_id', $message->result->message_id);
@@ -65,6 +65,7 @@ class ConfirmCallbackController extends CommandController
             $user->main_message_id = $this->user_data->get('main_message_id');
             $user->save();
             $this->user_data->save();
+            $register_data->flush();
             return;
         }
 

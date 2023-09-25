@@ -36,6 +36,7 @@ class RegisterService extends CommandController
         $fields = $this->register_data->get('fields');
         $summary_message_id = $this->register_data->get('summary_message_id');
         $reset_bot_message_id = $this->register_data->get('reset_bot_message_id');
+        $is_fields_updated = $is_fields_updated ?? false;
 
         foreach ($fields as $field_name => $field_data) {
             if ($field_data['is_completed']) continue;
@@ -57,6 +58,7 @@ class RegisterService extends CommandController
                 }
 
                 $this->setField($field_name, $value);
+                $is_fields_updated = true;
                 if ($summary_message_id) {
                     $this->deleteMessage($this->data->getMessage()->message_id ?? $this->data->getCallbackQuery()->message->message_id);
                     $this->deleteMessage($reset_bot_message_id);
@@ -65,17 +67,23 @@ class RegisterService extends CommandController
                     $this->register_data->delete('summary_message_id');
                     $this->register_data->delete('reset_bot_message_id');
                     $this->register_data->save();
+
                     return;
                 }
 
-                $this->register_data->save();
                 continue;
             }
 
             $this->{$field_data['method']}();
+            if ($is_fields_updated) {
+                $this->register_data->save();
+            }
             return;
         }
 
+        if ($is_fields_updated) {
+            $this->register_data->save();
+        }
         $this->confirm();
     }
 
@@ -183,7 +191,6 @@ class RegisterService extends CommandController
             'category' => $fields['category']['value'],
             'about' => $fields['about']['value']
         ]);
-        $this->register_data->flush();
 
         $this->respondWithMessage(' <strong>Отлично!</strong> ' . PHP_EOL . 'Ваши данные сохранены. Мы вам сообщим, когда найдём учеников со схожими интересами.');
 
@@ -215,26 +222,26 @@ class RegisterService extends CommandController
 
     public function name()
     {
-        $this->setPendingStatus('name');
-
         $response = $this->respondWithMessage('Введите имя');
-        $message_id = $response->result->message_id;
-        $this->checkForResetMessage($message_id);
+        if ($response->ok) {
+            $this->setPendingStatus('name');
+            $message_id = $response->result->message_id;
+            $this->checkForResetMessage($message_id);
+        }
     }
 
     public function about()
     {
-        $this->setPendingStatus('about');
-
         $response = $this->respondWithMessage('Напишите о себе');
-        $message_id = $response->result->message_id;
-        $this->checkForResetMessage($message_id);
+        if ($response->ok) {
+            $this->setPendingStatus('about');
+            $message_id = $response->result->message_id;
+            $this->checkForResetMessage($message_id);
+        }
     }
 
     public function subject()
     {
-        $this->setPendingStatus('subject');
-
         $chat_id = $this->data->getChatId();
         $response = $this->telegram_request_service
             ->setMethodName('sendMessage')
@@ -269,14 +276,15 @@ class RegisterService extends CommandController
             ])
             ->make();
 
-        $message_id = $response->result->message_id;
-        $this->checkForResetMessage($message_id);
+        if ($response->ok) {
+            $this->setPendingStatus('subject');
+            $message_id = $response->result->message_id;
+            $this->checkForResetMessage($message_id);
+        }
     }
 
     public function category()
     {
-        $this->setPendingStatus('category');
-
         $chat_id = $this->data->getChatId();
         $response = $this->telegram_request_service
             ->setMethodName('sendMessage')
@@ -311,7 +319,10 @@ class RegisterService extends CommandController
             ])
             ->make();
 
-        $message_id = $response->result->message_id;
-        $this->checkForResetMessage($message_id);
+        if ($response->ok) {
+            $this->setPendingStatus('category');
+            $message_id = $response->result->message_id;
+            $this->checkForResetMessage($message_id);
+        }
     }
 }
