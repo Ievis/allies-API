@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Telegram\Dating;
 
 use App\Models\TelegramDatingUser;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class RegisterService extends CommandController
@@ -45,6 +46,23 @@ class RegisterService extends CommandController
                 $message = $this->data->getMessage();
                 $attribute_name = $this->input('attribute') ?? null;
                 $value = $message->text ?? $this->input('value');
+
+                if ($field_name == 'city') {
+                    $value = mb_strtolower(str_replace(' ', '', $value));
+                    $value = mb_strtoupper(mb_substr($value, 0, 1)) . mb_substr($value, 1);
+                    $city = DB::table('cities')
+                        ->where('name', $value)
+                        ->first();
+                    if (empty($city)) {
+                        $this->respondWithMessage(
+                            '<strong>Город не найден.</strong>' .
+                            PHP_EOL .
+                            '<strong>Попробуйте ещё раз!</strong>'
+                        );
+
+                        return;
+                    }
+                }
 
                 if ($field_data['type'] === 'callback') {
                     if (!empty($message) or $field_name !== $attribute_name) {
@@ -103,6 +121,8 @@ class RegisterService extends CommandController
                         PHP_EOL .
                         'Категория: ' . $fields['category']['value'] .
                         PHP_EOL .
+                        'Город: ' . $fields['city']['value'] .
+                        PHP_EOL .
                         PHP_EOL .
                         'О себе: ' . $fields['about']['value'] .
                         PHP_EOL .
@@ -155,6 +175,11 @@ class RegisterService extends CommandController
                     PHP_EOL .
                     'Категория: ' . $fields['category']['value'] .
                     PHP_EOL .
+                    'Город: ' . $fields['city']['value'] .
+                    PHP_EOL .
+                    PHP_EOL .
+                    'О себе: ' . $fields['about']['value'] .
+                    PHP_EOL .
                     PHP_EOL .
                     '<strong>Всё верно?</strong>',
                 'reply_markup' => json_encode([
@@ -189,6 +214,7 @@ class RegisterService extends CommandController
             'name' => $fields['name']['value'],
             'subject' => $fields['subject']['value'],
             'category' => $fields['category']['value'],
+            'city' => $fields['city']['value'],
             'about' => $fields['about']['value']
         ]);
 
@@ -230,6 +256,16 @@ class RegisterService extends CommandController
         }
     }
 
+    public function city()
+    {
+        $response = $this->respondWithMessage('Введите Ваш город');
+        if ($response->ok) {
+            $this->setPendingStatus('city');
+            $message_id = $response->result->message_id;
+            $this->checkForResetMessage($message_id);
+        }
+    }
+
     public function about()
     {
         $response = $this->respondWithMessage('Напишите о себе');
@@ -258,7 +294,11 @@ class RegisterService extends CommandController
                             [
                                 'text' => 'Физика',
                                 'callback_data' => 'register-subject-Физика'
-                            ]
+                            ],
+                            [
+                                'text' => 'Информатика',
+                                'callback_data' => 'register-subject-Физика'
+                            ],
                         ],
                         [
                             [
@@ -268,7 +308,31 @@ class RegisterService extends CommandController
                             [
                                 'text' => 'Русский язык',
                                 'callback_data' => 'register-subject-Русский язык'
-                            ]
+                            ],
+                            [
+                                'text' => 'География',
+                                'callback_data' => 'register-subject-География'
+                            ],
+                        ],
+                        [
+                            [
+                                'text' => 'Биология',
+                                'callback_data' => 'register-subject-Биология'
+                            ],
+                            [
+                                'text' => 'Литература',
+                                'callback_data' => 'register-subject-Литература'
+                            ],
+                            [
+                                'text' => 'История',
+                                'callback_data' => 'register-subject-История'
+                            ],
+                        ],
+                        [
+                            [
+                                'text' => 'Иностранные языки',
+                                'callback_data' => 'register-subject-Иностранные языки'
+                            ],
                         ],
                     ]
                 ]),

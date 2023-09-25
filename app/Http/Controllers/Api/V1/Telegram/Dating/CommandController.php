@@ -110,10 +110,13 @@ class CommandController extends TelegramController
                     $relevant_user->name .
                     PHP_EOL .
                     'Предмет: ' .
-                    $relevant_user->subject .
+                    $user->subject .
                     PHP_EOL .
                     'Категория: ' .
-                    $relevant_user->category .
+                    $user->category .
+                    PHP_EOL .
+                    'Город: ' .
+                    $relevant_user->city .
                     PHP_EOL .
                     PHP_EOL .
                     'О себе: ' .
@@ -198,10 +201,13 @@ class CommandController extends TelegramController
                     $current_user->name .
                     PHP_EOL .
                     'Предмет: ' .
-                    $current_user->subject .
+                    $user->subject .
                     PHP_EOL .
                     'Категория: ' .
-                    $current_user->category .
+                    $user->category .
+                    PHP_EOL .
+                    'Город: ' .
+                    $current_user->city .
                     PHP_EOL .
                     PHP_EOL .
                     'О себе: ' .
@@ -246,6 +252,8 @@ class CommandController extends TelegramController
                     PHP_EOL .
                     'Категория: ' .
                     $liked_user->category .
+                    'Город: ' .
+                    $liked_user->city .
                     PHP_EOL .
                     PHP_EOL .
                     'О себе: ' .

@@ -18,9 +18,22 @@ class TelegramDatingUserFactory extends Factory
      */
     public function definition(): array
     {
+        $subjects = [
+            'Математика',
+            'Физика',
+            'Информатика',
+            'Химия',
+            'Русский язык',
+            'География',
+            'Биология',
+            'Литература',
+            'История',
+            'Иностранные языки',
+        ];
         return [
-            'subject' => Subject::inRandomOrder()->first()->name,
+            'subject' => $subjects[array_rand($subjects)],
             'category' => Category::inRandomOrder()->first()->name,
+            'city' => 'Москва',
             'name' => fake()->word,
             'username' => fake()->unique()->name,
             'chat_id' => '0000000000',

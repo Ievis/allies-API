@@ -20,9 +20,20 @@ class TelegramDatingUserSeeder extends Seeder
             'name' => 'Leo',
             'subject' => 'Математика',
             'category' => 'ЕГЭ',
+            'city' => 'Москва',
             'about' => 'I am Leo'
         ]);
-        $users = TelegramDatingUser::factory(100)->create();
+        TelegramDatingUser::create([
+            'username' => 'sharovap',
+            'chat_id' => '1013168319',
+            'name' => 'Leo',
+            'subject' => 'Математика',
+            'category' => 'ЕГЭ',
+            'city' => 'Москва',
+            'about' => 'I am Leo'
+        ]);
+
+        $users = TelegramDatingUser::factory(2000)->create();
         foreach ($users as $user) {
             $user_data = new UserData($user->username, [
                 'user' => $user

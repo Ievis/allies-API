@@ -34,6 +34,8 @@ class ConfirmCallbackController extends CommandController
                         PHP_EOL .
                         'Категория: ' . $fields['category']['value'] .
                         PHP_EOL .
+                        'Город: ' . $fields['city']['value'] .
+                        PHP_EOL .
                         PHP_EOL .
                         'О себе: ' . $fields['about']['value'],
                     'parse_mode' => 'html'
@@ -94,7 +96,19 @@ class ConfirmCallbackController extends CommandController
                                 'text' => 'Категория',
                                 'callback_data' => 'reset-category'
                             ]
-                        ]
+                        ],
+                        [
+                            [
+                                'text' => 'Город',
+                                'callback_data' => 'reset-city'
+                            ]
+                        ],
+                        [
+                            [
+                                'text' => 'О себе',
+                                'callback_data' => 'reset-about'
+                            ]
+                        ],
                     ]
                 ]),
                 'parse_mode' => 'html',
