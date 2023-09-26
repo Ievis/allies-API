@@ -37,7 +37,7 @@ class RegisterService extends CommandController
         $fields = $this->register_data->get('fields');
         $summary_message_id = $this->register_data->get('summary_message_id');
         $reset_bot_message_id = $this->register_data->get('reset_bot_message_id');
-        $is_fields_updated = $is_fields_updated ?? false;
+        $is_fields_updated = false;
 
         foreach ($fields as $field_name => $field_data) {
             if ($field_data['is_completed']) continue;
@@ -162,11 +162,10 @@ class RegisterService extends CommandController
     {
         $fields = $this->register_data->get('fields');
 
-        $chat_id = $this->data->getChatId();
-        $this->telegram_request_service
+        $response = $this->telegram_request_service
             ->setMethodName('sendMessage')
             ->setParams([
-                'chat_id' => $chat_id,
+                'chat_id' => $this->data->getChatId(),
                 'text' => '<strong>Ваши данные:</strong>' .
                     PHP_EOL .
                     'Имя: ' . $fields['name']['value'] .
@@ -199,6 +198,10 @@ class RegisterService extends CommandController
                 'parse_mode' => 'html',
             ])
             ->make();
+
+        $register_data = new RegisterData($this->data->getUsername());
+        $register_data->set('summary_message_id', $response->result->message_id);
+        $register_data->save();
     }
 
     public function persist()
@@ -207,7 +210,7 @@ class RegisterService extends CommandController
         $chat_id = $this->data->getChatId();
         $fields = $this->register_data->get('fields');
 
-        $user = TelegramDatingUser::updateOrCreate([
+        return TelegramDatingUser::updateOrCreate([
             'username' => $username
         ], [
             'chat_id' => $chat_id,
@@ -217,10 +220,6 @@ class RegisterService extends CommandController
             'city' => $fields['city']['value'],
             'about' => $fields['about']['value']
         ]);
-
-        $this->respondWithMessage(' <strong>Отлично!</strong> ' . PHP_EOL . 'Ваши данные сохранены. Мы вам сообщим, когда найдём учеников со схожими интересами.');
-
-        return $user;
     }
 
     private function getAttributeMessage(string $attribute_name, string $message_type)

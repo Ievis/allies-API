@@ -252,6 +252,7 @@ class CommandController extends TelegramController
                     PHP_EOL .
                     'Категория: ' .
                     $liked_user->category .
+                    PHP_EOL .
                     'Город: ' .
                     $liked_user->city .
                     PHP_EOL .

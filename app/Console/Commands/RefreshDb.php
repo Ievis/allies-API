@@ -33,5 +33,6 @@ class RefreshDb extends Command
         Artisan::call('db:seed');
         Artisan::call('db:seed --class=TelegramDatingUserSeeder');
         Artisan::call('db:seed --class=TelegramDatingFeedbackSeeder');
+        Artisan::call('db:seed --class=CitySeeder');
     }
 }

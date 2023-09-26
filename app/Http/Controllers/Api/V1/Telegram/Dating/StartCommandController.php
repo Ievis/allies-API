@@ -13,8 +13,47 @@ class StartCommandController extends CommandController
         $chat_id = $this->data->getChatId();
         $user_data = new UserData($username);
 
+        $register_data = Cache::get($username . ':register-data');
+        if ($register_data) {
+            $summary_message_id = $register_data->get('summary_message_id');
+            $reset_bot_message_id = $register_data->get('reset_bot_message_id');
+            $confirm_message_id = $register_data->get('confirm_message_id');
+            if ($reset_bot_message_id) {
+                $this->deleteMessage($reset_bot_message_id);
+            }
+            if ($confirm_message_id) {
+                $this->deleteMessage($confirm_message_id);
+            }
+            if ($summary_message_id) {
+                $this->deleteMessage($summary_message_id);
+            }
+            $register_service = new RegisterService();
+            $register_service->setTelegramUserData($this->data);
+            $register_service->setCallbackArgs($this->callback_query_args);
+
+            $register_data = new RegisterData($username);
+            $register_data->set('fields', $register_data->getFields());
+            $register_data->delete('summary_message_id');
+            $register_data->delete('confirm_message_id');
+            $register_data->delete('reset_bot_message_id');
+            $register_data->save();
+            $register_service->setRegisterData($register_data);
+            $register_service->proceed();
+
+            die();
+        }
+
         $main_message_id = $user_data->get('main_message_id');
         if ($main_message_id) {
+            $register_data = new RegisterData($username);
+            $reset_bot_message_id = $register_data->get('reset_bot_message_id');
+            $confirm_message_id = $register_data->get('confirm_message_id');
+            if ($reset_bot_message_id) {
+                $this->deleteMessage($reset_bot_message_id);
+            }
+            if ($confirm_message_id) {
+                $this->deleteMessage($confirm_message_id);
+            }
             $message = $this->data->getMessage();
             $this->telegram_request_service
                 ->setMethodName('sendMessage')
@@ -33,19 +72,19 @@ class StartCommandController extends CommandController
                             [
                                 [
                                     'text' => 'Ввести заново',
-                                    'callback_data' => 'reset-restart' . '-' . $message->message_id
+                                    'callback_data' => 'restart-restart' . '-' . $message->message_id
                                 ]
                             ],
                             [
                                 [
                                     'text' => 'Изменить',
-                                    'callback_data' => 'reset-update' . '-' . $message->message_id
+                                    'callback_data' => 'restart-update' . '-' . $message->message_id
                                 ]
                             ],
                             [
                                 [
                                     'text' => 'Отменить',
-                                    'callback_data' => 'reset-cancel' . '-' . $message->message_id
+                                    'callback_data' => 'restart-cancel' . '-' . $message->message_id
                                 ]
                             ],
                         ]
@@ -55,7 +94,6 @@ class StartCommandController extends CommandController
                 ->make();
 
             return;
-            $this->deleteMessage($main_message_id);
         }
 
         $this->telegram_request_service
@@ -67,52 +105,11 @@ class StartCommandController extends CommandController
             ])
             ->make();
 
-        $fields = [
-            'name' => [
-                'is_completed' => false,
-                'is_pending' => false,
-                'type' => 'text',
-                'value' => null,
-                'method' => 'name'
-            ],
-            'subject' => [
-                'is_completed' => false,
-                'is_pending' => false,
-                'type' => 'callback',
-                'value' => null,
-                'method' => 'subject'
-            ],
-            'category' => [
-                'is_completed' => false,
-                'is_pending' => false,
-                'type' => 'callback',
-                'value' => null,
-                'method' => 'category'
-            ],
-            'city' => [
-                'is_completed' => false,
-                'is_pending' => false,
-                'type' => 'text',
-                'value' => null,
-                'method' => 'city'
-            ],
-            'about' => [
-                'is_completed' => false,
-                'is_pending' => false,
-                'type' => 'text',
-                'value' => null,
-                'method' => 'about'
-            ],
-        ];
-
         $register_service = new RegisterService();
         $register_service->setTelegramUserData($this->data);
         $register_service->setCallbackArgs($this->callback_query_args);
 
-        $register_data = new RegisterData($username, [
-            'fields' => $fields
-        ]);
-
+        $register_data = new RegisterData($username);
         $register_data->save();
         $register_service->setRegisterData($register_data);
         $register_service->proceed();

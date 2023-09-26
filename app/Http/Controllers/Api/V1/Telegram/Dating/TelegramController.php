@@ -23,7 +23,7 @@ class TelegramController extends AbstractTelegramController
             'users-show-{user_id}-{page}' => UsersShowController::class,
             'confirm-{decision}' => ConfirmCallbackController::class,
             'register-{attribute}-{value}' => RegisterCallbackController::class,
-            'reset-{action}-{message_id}' => ResetCallbackController::class,
+            'restart-{action}-{message_id}' => RestartCallbackController::class,
             'feedback-{decision}-{first_username}-{second_username}' => FeedbackCallbackController::class,
         ];
     }

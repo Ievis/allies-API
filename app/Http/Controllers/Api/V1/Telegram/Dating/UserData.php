@@ -15,6 +15,8 @@ class UserData
     public null|TelegramDatingUser $current_user;
     public null|string $main_message_id;
     public null|string $notification_message_id;
+    public null|string $summary_message_id;
+    public null|string $greeting_message_id;
 
     public function __construct(string $username, array $user_data = [])
     {
@@ -29,6 +31,8 @@ class UserData
         $this->current_user = $user_data->get('current_user', null);
         $this->main_message_id = $user_data->get('main_message_id', null);
         $this->notification_message_id = $user_data->get('notification_message_id', null);
+        $this->summary_message_id = $user_data->get('summary_message_id', null);
+        $this->greeting_message_id = $user_data->get('greeting_message_id', null);
     }
 
     public function save(): bool
@@ -39,9 +43,11 @@ class UserData
             'relevant_users' => $this->relevant_users,
             'current_user' => $this->current_user,
             'main_message_id' => $this->main_message_id,
-            'notification_message_id' => $this->notification_message_id
+            'notification_message_id' => $this->notification_message_id,
+            'summary_message_id' => $this->summary_message_id,
+            'greeting_message_id' => $this->greeting_message_id,
         ]);
-        Cache::set($this->user->username . ':' . 'user-data', $user_data, 60 * 60 * 24 * 7);
+        Cache::set($this->user->username . ':' . 'user-data', $user_data, 60 * 60 * 24 * 14);
 
         return true;
     }

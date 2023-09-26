@@ -39,10 +39,6 @@ class ConfirmCallbackController extends CommandController
                         PHP_EOL .
                         'О себе: ' . $fields['about']['value'],
                     'parse_mode' => 'html'
-//                'reply_markup' => json_encode([
-//                        'inline_keyboard' => [
-//
-//                        ]
                 ]
             )
             ->make();
@@ -54,9 +50,14 @@ class ConfirmCallbackController extends CommandController
 
             $register_service->setRegisterData($register_data);
             $user = $register_service->persist();
+            $response = $this->respondWithMessage(' <strong>Отлично!</strong> ' . PHP_EOL . 'Ваши данные сохранены. Мы вам сообщим, когда найдём учеников со схожими интересами.');
             $this->setUserData([
                 'user' => $user
             ]);
+            if ($response->ok) {
+                $this->user_data->set('greeting_message_id', $response->result->message_id);
+            }
+            $this->user_data->set('summary_message_id', $callback_query->message->message_id);
 
             $relevant_user = $this->getRelevantUser();
             $message = $this->nextUserIfExists($relevant_user, true);
@@ -71,11 +72,10 @@ class ConfirmCallbackController extends CommandController
             return;
         }
 
-        $chat_id = $this->data->getChatId();
-        $this->telegram_request_service
+        $response = $this->telegram_request_service
             ->setMethodName('sendMessage')
             ->setParams([
-                'chat_id' => $chat_id,
+                'chat_id' => $this->data->getChatId(),
                 'text' => '<strong>Какое из указанных ниже полей хотите изменить?</strong>',
                 'reply_markup' => json_encode([
                     'inline_keyboard' => [
@@ -115,6 +115,9 @@ class ConfirmCallbackController extends CommandController
             ])
             ->make();
 
+        if ($response->ok) {
+            $register_data->set('confirm_message_id', $response->result->message_id);
+        }
         $register_data->set('summary_message_id', $callback_query->message->message_id);
         $register_data->save();
     }

@@ -12,7 +12,14 @@ class ErrorCommandController extends CommandController
         $username = $this->data->getUsername();
         $register_data = new RegisterData($username);
 
-        if ($register_data->get('fields')) {
+        $fields = $register_data->get('fields');
+        $is_register_in_action = false;
+        array_walk($fields, function ($field) use (&$is_register_in_action) {
+            if ($field['is_pending']) {
+                $is_register_in_action = true;
+            }
+        });
+        if ($is_register_in_action) {
             $register_service = new RegisterService();
             $register_service->setTelegramUserData($this->data);
             $register_service->setCallbackArgs($this->callback_query_args);
@@ -20,7 +27,8 @@ class ErrorCommandController extends CommandController
             $register_service->setRegisterData($register_data);
             $register_service->proceed();
         } else {
-            $this->respondWithMessage('Неверная команда!');
+            $message = $this->data->getMessage();
+            $this->deleteMessage($message->message_id);
         }
     }
 }

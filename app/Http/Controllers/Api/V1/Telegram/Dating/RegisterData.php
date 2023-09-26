@@ -10,6 +10,7 @@ class RegisterData
     public array $fields;
     public null|int $summary_message_id;
     public null|int $reset_bot_message_id;
+    public null|int $confirm_message_id;
 
     public function __construct($username, array $register_data = [])
     {
@@ -19,9 +20,51 @@ class RegisterData
         $register_data = collect($register_data);
 
         $this->username = $username;
-        $this->fields = $register_data->get('fields', []);
+        $this->fields = $register_data->get('fields', $this->getFields());
         $this->summary_message_id = $register_data->get('summary_message_id');
         $this->reset_bot_message_id = $register_data->get('reset_bot_message_id');
+        $this->confirm_message_id = $register_data->get('confirm_message_id');
+    }
+
+    public function getFields()
+    {
+        return [
+            'name' => [
+                'is_completed' => false,
+                'is_pending' => false,
+                'type' => 'text',
+                'value' => null,
+                'method' => 'name'
+            ],
+            'subject' => [
+                'is_completed' => false,
+                'is_pending' => false,
+                'type' => 'callback',
+                'value' => null,
+                'method' => 'subject'
+            ],
+            'category' => [
+                'is_completed' => false,
+                'is_pending' => false,
+                'type' => 'callback',
+                'value' => null,
+                'method' => 'category'
+            ],
+            'city' => [
+                'is_completed' => false,
+                'is_pending' => false,
+                'type' => 'text',
+                'value' => null,
+                'method' => 'city'
+            ],
+            'about' => [
+                'is_completed' => false,
+                'is_pending' => false,
+                'type' => 'text',
+                'value' => null,
+                'method' => 'about'
+            ],
+        ];
     }
 
     public function get(string $key): mixed
@@ -48,7 +91,8 @@ class RegisterData
         $register_data = collect([
             'fields' => $this->fields,
             'summary_message_id' => $this->summary_message_id,
-            'reset_bot_message_id' => $this->reset_bot_message_id
+            'reset_bot_message_id' => $this->reset_bot_message_id,
+            'confirm_message_id' => $this->confirm_message_id
         ]);
         Cache::set($this->username . ':' . 'register-data', $register_data, 60 * 60);
 
