@@ -17,16 +17,11 @@ class TelegramDatingFeedbackSeeder extends Seeder
     {
         $users = TelegramDatingUser::query()
             ->where('username', '!=', 'levchaba')
-            ->limit(1500)
+            ->limit(1000)
             ->get();
         $me = TelegramDatingUser::query()
             ->where('username', 'levchaba')
             ->first();
-        $anton = TelegramDatingUser::query()
-            ->where('username', 'sharovap')
-            ->first();
-
-        $to_like = [$me->id, $anton->id];
 
         foreach ($users as $user) {
             $first_user_reaction = (bool)random_int(0, 1);
@@ -34,7 +29,7 @@ class TelegramDatingFeedbackSeeder extends Seeder
 
             $feedback = TelegramDatingFeedback::create([
                 'first_user_id' => $user->id,
-                'second_user_id' => $to_like[array_rand($to_like)],
+                'second_user_id' => $me->id,
                 'first_user_reaction' => $first_user_reaction,
                 'second_user_reaction' => false,
                 'subject' => $user->subject,

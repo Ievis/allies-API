@@ -37,7 +37,8 @@ class TelegramDatingUserFactory extends Factory
             'name' => fake()->word,
             'username' => fake()->unique()->name,
             'chat_id' => '0000000000',
-            'about' => fake()->paragraph(rand(1, 5))
+            'about' => fake()->paragraph(rand(1, 5)),
+            'is_waiting' => false
         ];
     }
 }

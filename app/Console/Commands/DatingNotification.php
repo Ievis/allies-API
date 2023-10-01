@@ -45,6 +45,7 @@ class DatingNotification extends Command
         foreach ($waiting_users as $waiting_user) {
             $username = $waiting_user->username;
             if (Cache::has($username . ':' . 'register-data')) {
+                $this->affectDelayIdCache($waiting_user, $delayed_ids, 320);
 
                 continue;
             }
@@ -73,19 +74,20 @@ class DatingNotification extends Command
                         'parse_mode' => 'html',
                     ])
                     ->make();
+
                 continue;
             }
-            $user_data = new UserData($username);
 
+            $user_data = new UserData($username);
             $relevant_users = $waiting_user->relevantUsersWithFeedbacks();
             if ($relevant_users->isEmpty()) {
-                $this->affectDelayIdCache($waiting_user, $delayed_ids);
+                $this->affectDelayIdCache($waiting_user, $delayed_ids, 320);
 
                 continue;
             }
             $relevant_user = $relevant_users->shift();
             $is_notified = $this->notify($relevant_user, $waiting_user, $user_data);
-            $this->affectDelayIdCache($waiting_user, $delayed_ids);
+            $this->affectDelayIdCache($waiting_user, $delayed_ids, 320);
 
             if ($is_notified) {
                 $user_data->set('relevant_users', $relevant_users);
@@ -134,14 +136,16 @@ class DatingNotification extends Command
             ])
             ->make();
 
-        $response = $this->telegram_service
-            ->setMethodName('sendMessage')
-            ->setParams([
-                'chat_id' => $chat_id,
-                'text' => '<strong>Мы подобрали для вас новых людей!</strong>',
-                'parse_mode' => 'html',
-            ])
-            ->make();
+        if ($response->ok) {
+            $response = $this->telegram_service
+                ->setMethodName('sendMessage')
+                ->setParams([
+                    'chat_id' => $chat_id,
+                    'text' => '<strong>Мы подобрали для вас новых людей!</strong>',
+                    'parse_mode' => 'html',
+                ])
+                ->make();
+        }
         if ($response->ok) {
             $user_data->set('notification_message_id', $response->result->message_id);
 
@@ -204,8 +208,8 @@ class DatingNotification extends Command
             ->where('is_waiting', true);
 
         return empty($delayed_ids)
-            ? $waiting_users_query->get()
-            : $waiting_users_query->whereNotIn('id', $delayed_ids)->get();
+            ? $waiting_users_query->limit(100)->get()
+            : $waiting_users_query->whereNotIn('id', $delayed_ids)->limit(100)->get();
     }
 
     private function affectDelayIdCache($waiting_user, &$delayed_ids, $ttl = 60)
