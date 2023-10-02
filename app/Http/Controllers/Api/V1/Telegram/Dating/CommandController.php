@@ -125,11 +125,11 @@ class CommandController extends TelegramController
                     'inline_keyboard' => [
                         [
                             [
-                                'text' => 'Показать',
+                                'text' => '❤️',
                                 'callback_data' => 'feedback-1-' . $first_username . '-' . $second_username
                             ],
                             [
-                                'text' => 'Следующий',
+                                'text' => '➡️',
                                 'callback_data' => 'feedback-0-' . $first_username . '-' . $second_username
                             ]
                         ],
