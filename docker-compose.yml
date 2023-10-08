@@ -20,7 +20,7 @@ services:
       - ./:/var/www
     depends_on:
       - db
-    container_name: app
+    container_name: app_app
 
   db:
     image: mysql:latest
@@ -30,23 +30,12 @@ services:
     volumes:
       - ./tmp/db/:/var/lib/mysql
     environment:
-      MYSQL_DATABASE: laravel
+      MYSQL_DATABASE: app
       MYSQL_ROOT_PASSWORD: root
     ports:
       - "3306:3306"
     command: mysqld --character-set-server=utf8 --collation-server=utf8_unicode_ci
     container_name: app_db
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    environment:
-      PMA_HOST: db
-      MYSQL_ROOT_PASSWORD: root
-    ports:
-      - "8080:80"
-    depends_on:
-      - db
-    container_name: app_phpmyadmin
 
   cache:
     image: redis:7.2-rc3-bookworm
